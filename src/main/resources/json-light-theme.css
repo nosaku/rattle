@@ -1,0 +1,40 @@
+.json-start-object, .json-end-object {
+    -fx-fill: #FF4500; /* Orange Red */
+}
+
+.json-property {
+    -fx-fill: #0000FF; /* Blue */
+    /* -fx-font-weight: bold; */
+}
+
+.json-string {
+    -fx-fill: #8A2BE2;  /* Blue Violet */
+}
+
+.json-start-array, .json-end-array {
+    -fx-fill: #20B2AA;  /* Light Sea Green */
+}
+
+.json-float {
+    -fx-fill: #FF8C00;   /* Dark Orange */
+}
+
+.json-int {
+    -fx-fill: #A52A2A; /* Brown */
+}
+
+.json-null {
+    -fx-fill: #A9A9A9; /* Dark Gray */
+}
+
+.json-embedded {
+    -fx-fill: #800080; /* Purple */
+}
+
+.json-true {
+    -fx-fill: #008000; /* Green */
+}
+
+.json-false {
+    -fx-fill: #DC143C; /* Crimson */
+}

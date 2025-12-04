@@ -1,0 +1,14 @@
+.tab-pane .tab-label {
+    /* Set a maximum width for the label within the tab header */
+    -fx-max-width: 150px; 
+    /* Ensures text exceeding the width displays as an ellipsis */
+    -fx-text-overrun: ellipsis; 
+}
+
+/* Optional: If you want all tabs to have the same fixed width */
+.tab-pane .tab-header-area .tab {
+    -fx-min-width: 160px;
+    -fx-pref-width: 160px;
+    -fx-max-width: 160px;
+    -fx-text-overrun: ellipsis; 
+}

@@ -1,0 +1,5 @@
+Java 25
+--module-path /home/nosaku/programs/javafx-sdk-21.0.9/lib --add-modules javafx.controls --add-exports javafx.base/com.sun.javafx.event=org.controlsfx.controls
+
+Java 21
+--module-path /home/nosaku/programs/javafx-sdk-21.0.9/lib --add-modules javafx.controls --add-exports javafx.base/com.sun.javafx.event=ALL-UNNAMED

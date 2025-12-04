@@ -1,0 +1,24 @@
+/* style.css */
+.tab-header-area {
+    /* Remove the default padding/margin in the tab area */
+    -fx-padding: 0em 0em 0em 0em; 
+    -fx-background-color: transparent;
+}
+
+.hbox-wrapper {
+    /* Set a matching background color to simulate the tab header background */
+    -fx-background-color: #E0E0E0; /* Adjust color to match your OS/JavaFX theme */
+    -fx-alignment: CENTER_RIGHT; /* Align button to the right */
+}
+
+/* Optional: Make the button look less like a standard button */
+.add-tab-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 5 10 5 10;
+    -fx-font-weight: bold;
+}
+
+.add-tab-button:hover {
+     -fx-background-color: #C0C0C0;
+}
