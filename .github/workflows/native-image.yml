@@ -11,7 +11,7 @@ on:
 
 jobs:
   build_non_win_images:
-    name: 'Build Native Image ${{ matrix.platform }}'
+    # name: 'Build Native Image ${{ matrix.platform }}'
     needs: [ test_linux_headless ]
     strategy:
       matrix:
