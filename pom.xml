@@ -378,7 +378,13 @@
                             </execution>
                         </executions>
                         <configuration>
+                            <imageName>rattle</imageName>
                             <mainClass>com.nosaku.rattle.Launcher</mainClass>
+                            <buildArgs>
+                                <buildArg>--verbose</buildArg>
+                                <buildArg>--no-fallback</buildArg>
+                            </buildArgs>
+                            <outputDirectory>${project.build.directory}/native</outputDirectory>
                         </configuration>
                     </plugin>
                 </plugins>
