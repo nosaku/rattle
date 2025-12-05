@@ -55,7 +55,7 @@ jobs:
         uses: thedoctor0/zip-release@0.7.5
         with:
           type: 'zip'
-          filename: "raffle-${{ matrix.platform }}.zip"
+          filename: "rattle-${{ matrix.platform }}.zip"
           directory: target/native
 
       - name: Upload binaries to release
@@ -64,6 +64,6 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
           release_name: native-image
-          file: "target/native/raffle-${{ matrix. platform }}.zip"
+          file: "target/native/rattle-${{ matrix. platform }}.zip"
           overwrite: true
           make_latest: true
