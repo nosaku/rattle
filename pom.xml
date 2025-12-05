@@ -386,6 +386,7 @@
                                 <buildArg>-march=compatibility</buildArg>
                                 <buildArg>-H:IncludeResources=.*\.css$</buildArg>
                                 <buildArg>-H:IncludeResources=.*\.png$</buildArg>
+                                <buildArg>-H:ReflectionConfigurationFiles=${project.basedir}/src/main/resources/META-INF/native-image/reflect-config.json</buildArg>
                             </buildArgs>
                             <outputDirectory>${project.build.directory}/native</outputDirectory>
                         </configuration>
