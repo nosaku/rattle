@@ -49,7 +49,7 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          ./mvnw -Pnative package
+          mvn -Pnative package
 
       - name: Archive Release
         uses: thedoctor0/zip-release@0.7.5
