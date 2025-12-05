@@ -383,6 +383,7 @@
                             <buildArgs>
                                 <buildArg>--verbose</buildArg>
                                 <buildArg>--no-fallback</buildArg>
+                                <buildArg>-march=compatibility</buildArg>
                             </buildArgs>
                             <outputDirectory>${project.build.directory}/native</outputDirectory>
                         </configuration>
