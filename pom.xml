@@ -388,6 +388,8 @@
                                 <buildArg>-H:IncludeResources=.*\.png$</buildArg>
                                 <buildArg>-H:ReflectionConfigurationFiles=${project.basedir}/src/main/resources/META-INF/native-image/reflect-config.json</buildArg>
                                 <buildArg>-H:+ReportExceptionStackTraces</buildArg>
+                                <buildArg>--add-exports</buildArg>
+                                <buildArg>javafx.base/com.sun.javafx.event=ALL-UNNAMED</buildArg>
                             </buildArgs>
                             <outputDirectory>${project.build.directory}/native</outputDirectory>
                         </configuration>
