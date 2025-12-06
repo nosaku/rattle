@@ -61,6 +61,8 @@ import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -106,7 +108,7 @@ public class App extends Application {
 		rootTreeItem.setExpanded(true);
 		centerTabs = new TabPane();
 		treeView = new TreeView<>(rootTreeItem);
-		treeView.setEditable(true);
+		// treeView.setEditable(true);
 		treeView.setCellFactory(new Callback<TreeView<ApiModelVo>, TreeCell<ApiModelVo>>() {
 			@Override
 			public TreeCell<ApiModelVo> call(TreeView<ApiModelVo> p) {
@@ -127,28 +129,11 @@ public class App extends Application {
 						deleteTreeItem(selectedItem);
 					}
 				} else if (event.getCode() == KeyCode.F2) {
-					// Prevent renaming root
-					if (value.getId() != null && !"History".equalsIgnoreCase(value.getName())) {
-						// Find the cell for the selected item and force edit
-						int selectedIndex = treeView.getSelectionModel().getSelectedIndex();
-						if (selectedIndex >= 0) {
-							// Use reflection or cell lookup to get the cell
-							// Simpler approach: trigger edit on the tree view
-							Platform.runLater(() -> {
-								if (treeView.getCellFactory() != null) {
-									// The cell will handle the forceEdit flag when we call edit
-									for (javafx.scene.Node node : treeView.lookupAll(".tree-cell")) {
-										if (node instanceof RenameMenuTreeCell) {
-											RenameMenuTreeCell cell = (RenameMenuTreeCell) node;
-											if (cell.getTreeItem() == selectedItem) {
-												cell.forceStartEdit();
-												break;
-											}
-										}
-									}
-								}
-							});
-						}
+					// TODO
+				} else if (event.getCode() == KeyCode.ENTER) {
+					if (value != null && value.getId() != null) {
+						openTab(value.getId());
+						event.consume();
 					}
 				}
 			}
@@ -628,12 +613,24 @@ public class App extends Application {
 			MenuItem renameItem = new MenuItem("Rename");
 			menu.getItems().add(renameItem);
 			renameItem.setOnAction(event -> {
-				this.forceStartEdit();
+				getTreeView().setEditable(true);
+				startEdit();
 			});
 			MenuItem deleteItem = new MenuItem("Delete");
 			menu.getItems().add(deleteItem);
 			deleteItem.setOnAction(event -> {
 				app.deleteTreeItem(getTreeItem());
+			});
+			
+			setOnMouseClicked(new EventHandler<MouseEvent>() {
+				@Override
+				public void handle(MouseEvent event) {
+					if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
+						if (getItem() != null && getItem().getId() != null) {
+							app.openTab(getItem().getId());
+						}
+					}
+				}
 			});
 		}
 
@@ -643,38 +640,15 @@ public class App extends Application {
 
 			if (!isEditing()) {
 				setContextMenu(menu);
+				getTreeView().setEditable(false);
 			}
 		}
 
 		@Override
 		public void startEdit() {
-			if (forceEdit) {
-				forceEdit = false;
+			if (getTreeItem() != null && !isEmpty()) {
 				super.startEdit();
-				return;
 			}
-
-			// On double-click, select the matching tab instead of editing
-			if (getItem() != null) {
-				boolean isOpenTabFound = false;
-				for (Tab tab : centerTabs.getTabs()) {
-					if (tab.getId().equals(getItem().getId())) {
-						centerTabs.getSelectionModel().select(tab);
-						isOpenTabFound = true;
-						break;
-					}
-				}
-				if (!isOpenTabFound) {
-					app.addNewTab(centerTabs, app.rootTreeItem, app.treeView, getItem().getId(), false);
-				}
-			}
-			// Prevent editing on double-click
-		}
-
-		public void forceStartEdit() {
-			// Public method to allow editing via context menu or F2 key
-			forceEdit = true;
-			startEdit();
 		}
 
 		private static StringConverter<ApiModelVo> createConverter() {
@@ -686,8 +660,6 @@ public class App extends Application {
 
 				@Override
 				public ApiModelVo fromString(String string) {
-					// Just return a temporary object with the new name
-					// The actual update will be handled in renameTreeItem
 					ApiModelVo apiModelVo = new ApiModelVo();
 					apiModelVo.setName(string);
 					return apiModelVo;
@@ -1053,7 +1025,7 @@ public class App extends Application {
 		appNameLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
 
 		Label descriptionLabel = new Label(
-				"Rattle is a modern API client for testing and managing RESTful APIs.\n\nFeatures:\n- Tabbed requests\n- JSON highlighting\n- Request history\n- Easy parameter and header editing\n\nEnjoy productivity and simplicity for your API workflow!");
+				"Rattle is an API client for testing and managing RESTful APIs.\n\nFeatures:\n- Tabbed requests\n- JSON highlighting\n- Request history\n- Easy parameter and header editing\n\nEnjoy productivity and simplicity for your API workflow!");
 		descriptionLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #333;");
 		descriptionLabel.setWrapText(true);
 
@@ -1179,5 +1151,19 @@ public class App extends Application {
 			}
 		}
 		return params;
+	}
+
+	private void openTab(String id) {
+		boolean isOpenTabFound = false;
+		for (Tab tab : centerTabs.getTabs()) {
+			if (tab.getId().equals(id)) {
+				centerTabs.getSelectionModel().select(tab);
+				isOpenTabFound = true;
+				break;
+			}
+		}
+		if (!isOpenTabFound) {
+			addNewTab(centerTabs, rootTreeItem, treeView, id, false);
+		}
 	}
 }
