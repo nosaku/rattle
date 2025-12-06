@@ -43,6 +43,11 @@ public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 			getTreeView().setEditable(true);
 			startEdit();
 		});
+		MenuItem cloneItem = new MenuItem("Clone");
+		menu.getItems().add(cloneItem);
+		cloneItem.setOnAction(event -> {
+			app.cloneTreeItem(getTreeItem());
+		});
 		MenuItem deleteItem = new MenuItem("Delete");
 		menu.getItems().add(deleteItem);
 		deleteItem.setOnAction(event -> {
@@ -66,7 +71,12 @@ public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 		super.updateItem(item, empty);
 
 		if (!isEditing()) {
-			setContextMenu(menu);
+			// Only show context menu for child items, not for the root/parent item
+			if (getTreeItem() != null && getTreeItem().getParent() != null && !empty) {
+				setContextMenu(menu);
+			} else {
+				setContextMenu(null);
+			}
 			getTreeView().setEditable(false);
 		}
 	}
