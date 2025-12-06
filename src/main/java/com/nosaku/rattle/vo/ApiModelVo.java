@@ -41,6 +41,7 @@ public class ApiModelVo implements Cloneable {
 	private boolean isNewTab;
 	private boolean isAuthConfig;
 	private String authType;
+	private String authConfigId;
 
 	@Override
 	public String toString() {
@@ -207,12 +208,19 @@ public class ApiModelVo implements Cloneable {
 	public void setAuthConfig(boolean isAuthConfig) {
 		this.isAuthConfig = isAuthConfig;
 	}
-
 	public String getAuthType() {
 		return authType;
 	}
 
 	public void setAuthType(String authType) {
 		this.authType = authType;
+	}
+
+	public String getAuthConfigId() {
+		return authConfigId;
+	}
+
+	public void setAuthConfigId(String authConfigId) {
+		this.authConfigId = authConfigId;
 	}
 }

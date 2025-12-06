@@ -449,10 +449,13 @@ public class App extends Application {
 		// Top Content: Parameters, Headers, Body selector tabs
 		TabPane topTabs = new TabPane();
 		
-		// Add Auth tab for auth config items
+		// Add Auth tab (different content for auth configs vs regular requests)
 		if (apiModelVo.isAuthConfig()) {
-			VBox authTabContent = createAuthTabContent(apiModelVo, finalCurrentTab);
+			VBox authTabContent = createAuthConfigContent(apiModelVo, finalCurrentTab);
 			topTabs.getTabs().add(new Tab("Auth", authTabContent));
+		} else {
+			VBox authSelectionContent = createAuthSelectionContent(apiModelVo, finalCurrentTab);
+			topTabs.getTabs().add(new Tab("Auth", authSelectionContent));
 		}
 		
 		topTabs.getTabs().add(new Tab("Params", paramsScrollPane));
@@ -774,7 +777,62 @@ public class App extends Application {
 		tabManager.addNewAuthConfigTab(null, true, false);
 	}
 	
-	private VBox createAuthTabContent(ApiModelVo apiModelVo, Tab currentTab) {
+	private VBox createAuthSelectionContent(ApiModelVo apiModelVo, Tab currentTab) {
+		VBox authBox = new VBox(10);
+		authBox.setPadding(new Insets(10));
+		
+		Label authLabel = new Label("Authentication:");
+		ComboBox<String> authComboBox = new ComboBox<>();
+		authComboBox.setPromptText("Select authentication");
+		authComboBox.setPrefWidth(300);
+		
+		// Build list of auth configurations with display names
+		Map<String, String> authConfigMap = new LinkedHashMap<>(); // id -> name
+		authConfigMap.put("None", "None");
+		
+		// Get all auth configs from the tree
+		for (TreeItem<ApiModelVo> item : authConfigTreeItem.getChildren()) {
+			if (item.getValue() != null && item.getValue().getId() != null && item.getValue().getName() != null) {
+				authConfigMap.put(item.getValue().getId(), item.getValue().getName());
+			}
+		}
+		
+		authComboBox.setItems(FXCollections.observableArrayList(authConfigMap.values()));
+		
+		// Set current selection - find name by ID
+		String displayName = "None";
+		if (StringUtil.nonEmptyStr(apiModelVo.getAuthConfigId())) {
+			for (Map.Entry<String, String> entry : authConfigMap.entrySet()) {
+				if (entry.getKey().equals(apiModelVo.getAuthConfigId())) {
+					displayName = entry.getValue();
+					break;
+				}
+			}
+		}
+		authComboBox.setValue(displayName);
+		
+		authComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
+			if (currentTab != null && !newVal.equals(oldVal)) {
+				tabManager.markTabAsModified(currentTab);
+				
+				// Find ID by name
+				String selectedId = null;
+				for (Map.Entry<String, String> entry : authConfigMap.entrySet()) {
+					if (entry.getValue().equals(newVal)) {
+						selectedId = entry.getKey();
+						break;
+					}
+				}
+				apiModelVo.setAuthConfigId("None".equals(selectedId) ? null : selectedId);
+			}
+		});
+		
+		authBox.getChildren().addAll(authLabel, authComboBox);
+		
+		return authBox;
+	}
+	
+	private VBox createAuthConfigContent(ApiModelVo apiModelVo, Tab currentTab) {
 		VBox authBox = new VBox(10);
 		authBox.setPadding(new Insets(10));
 		
@@ -785,6 +843,10 @@ public class App extends Application {
 		);
 		authTypeComboBox.setPromptText("Select authentication type");
 		authTypeComboBox.setPrefWidth(300);
+		
+		if (StringUtil.nonEmptyStr(apiModelVo.getAuthType())) {
+			authTypeComboBox.setValue(apiModelVo.getAuthType());
+		}
 
 		// Container for auth-type specific fields
 		VBox fieldsContainer = new VBox(10);

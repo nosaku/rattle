@@ -467,24 +467,29 @@ public class TabManager {
 			SplitPane mainContentSplit = (SplitPane) mainLayout.getChildren().get(1);
 			if (mainContentSplit != null && mainContentSplit.getItems().size() > 0) {
 				TabPane topTabs = (TabPane) mainContentSplit.getItems().get(0);
+
+//				Tab authTab = topTabs.getTabs().get(0);
+//				VBox authTabContainer = (VBox) authTab.getContent();
+//				for (Node node : authTabContainer.getChildren()) {
+//					if (node instanceof ComboBox) {
+//						ComboBox<String> authComboBox = (ComboBox<String>) node;
+//						System.out.println("node " + authComboBox.getValue());
+//					}
+//				}
 				
-				int paramsTabIndex = apiModelVo.isAuthConfig() ? 1 : 0;
-				int headersTabIndex = apiModelVo.isAuthConfig() ? 2 : 1;
-				int bodyTabIndex = apiModelVo.isAuthConfig() ? 3 : 2;
-				
-				Tab paramsTab = topTabs.getTabs().get(paramsTabIndex);
+				Tab paramsTab = topTabs.getTabs().get(1);
 				ScrollPane paramsScrollPane = (ScrollPane) paramsTab.getContent();
 				VBox paramsContainer = (VBox) paramsScrollPane.getContent();
 				Map<String, String> params = extractParamsFromContainer(paramsContainer);
 				apiModelVo.setParams(params);
 				
-				Tab headersTab = topTabs.getTabs().get(headersTabIndex);
+				Tab headersTab = topTabs.getTabs().get(2);
 				ScrollPane headersScrollPane = (ScrollPane) headersTab.getContent();
 				VBox headersContainer = (VBox) headersScrollPane.getContent();
 				Map<String, String> headers = extractParamsFromContainer(headersContainer);
 				apiModelVo.setHeaders(headers);
 				
-				Tab bodyTab = topTabs.getTabs().get(bodyTabIndex);
+				Tab bodyTab = topTabs.getTabs().get(3);
 				TextArea bodyTextArea = (TextArea) bodyTab.getContent();
 				apiModelVo.setBody(bodyTextArea.getText());
 			}
