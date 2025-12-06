@@ -76,8 +76,18 @@ import javafx.util.StringConverter;
 public class App extends Application {
 	private static final String FILE_NAME = "rattle.json";
 	private double lastDividerPosition = 0.2;
-	private final Collection<String> suggestions = Arrays.asList("Apple", "Banana", "Cherry", "Date", "Elderberry",
-			"Fig", "Grape");
+	private static final Collection<String> HTTP_HEADERS = Arrays.asList(
+			"Accept", "Accept-Charset", "Accept-Encoding", "Accept-Language", "Accept-Datetime",
+			"Authorization", "Cache-Control", "Connection", "Content-Length", "Content-Type",
+			"Cookie", "Date", "Expect", "Forwarded", "From", "Host", "If-Match", "If-Modified-Since",
+			"If-None-Match", "If-Range", "If-Unmodified-Since", "Max-Forwards", "Origin", "Pragma",
+			"Proxy-Authorization", "Range", "Referer", "TE", "User-Agent", "Upgrade", "Via", "Warning",
+			"X-Requested-With", "X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto",
+			"X-API-Key", "X-Auth-Token", "X-CSRF-Token", "Access-Control-Allow-Origin",
+			"Access-Control-Allow-Methods", "Access-Control-Allow-Headers", "Access-Control-Max-Age",
+			"Access-Control-Allow-Credentials", "X-Frame-Options", "X-Content-Type-Options",
+			"Strict-Transport-Security", "Content-Security-Policy", "X-XSS-Protection"
+	);
 	private int tabIndex;
 	private Map<String, ApiModelVo> apiModelVoMap = new LinkedHashMap<>();
 	private TabPane centerTabs;
@@ -558,7 +568,7 @@ public class App extends Application {
 			keyField.setText(key);
 		}
 		if (isHeaderRow) {
-			TextFields.bindAutoCompletion(keyField, suggestions);
+			TextFields.bindAutoCompletion(keyField, HTTP_HEADERS);
 		}
 		TextField valueField = new TextField();
 		valueField.setId("value");
