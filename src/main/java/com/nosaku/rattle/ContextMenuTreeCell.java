@@ -32,26 +32,35 @@ import javafx.scene.input.MouseEvent;
 import javafx.util.StringConverter;
 
 public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
-	private ContextMenu menu = new ContextMenu();
+	private ContextMenu childMenu = new ContextMenu();
+	private ContextMenu authParentMenu = new ContextMenu();
 
 	public ContextMenuTreeCell(App app) {
 		super(createConverter());
 
+		// Child menu items (for API requests and auth configs)
 		MenuItem renameItem = new MenuItem("Rename");
-		menu.getItems().add(renameItem);
+		childMenu.getItems().add(renameItem);
 		renameItem.setOnAction(event -> {
 			getTreeView().setEditable(true);
 			startEdit();
 		});
 		MenuItem cloneItem = new MenuItem("Clone");
-		menu.getItems().add(cloneItem);
+		childMenu.getItems().add(cloneItem);
 		cloneItem.setOnAction(event -> {
 			app.cloneTreeItem(getTreeItem());
 		});
 		MenuItem deleteItem = new MenuItem("Delete");
-		menu.getItems().add(deleteItem);
+		childMenu.getItems().add(deleteItem);
 		deleteItem.setOnAction(event -> {
 			app.deleteTreeItem(getTreeItem());
+		});
+		
+		// Auth parent menu items
+		MenuItem newAuthConfigItem = new MenuItem("New Auth Configuration");
+		authParentMenu.getItems().add(newAuthConfigItem);
+		newAuthConfigItem.setOnAction(event -> {
+			app.addNewAuthConfig();
 		});
 
 		setOnMouseClicked(new EventHandler<MouseEvent>() {
@@ -71,9 +80,20 @@ public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 		super.updateItem(item, empty);
 
 		if (!isEditing()) {
-			// Only show context menu for child items, not for the root/parent item
-			if (getTreeItem() != null && getTreeItem().getParent() != null && !empty) {
-				setContextMenu(menu);
+			if (getTreeItem() != null && !empty) {
+				// Check if this is the auth parent item
+				if (item != null && "Auth configurations".equals(item.getName()) && 
+						getTreeItem().getParent() != null && getTreeItem().getParent().getValue() != null &&
+						"".equals(getTreeItem().getParent().getValue().getName())) {
+					setContextMenu(authParentMenu);
+				} 
+				// Show child menu for child items
+				else if (getTreeItem().getParent() != null && getTreeItem().getParent().getValue() != null &&
+						!"".equals(getTreeItem().getParent().getValue().getName())) {
+					setContextMenu(childMenu);
+				} else {
+					setContextMenu(null);
+				}
 			} else {
 				setContextMenu(null);
 			}

@@ -43,6 +43,7 @@ import com.nosaku.rattle.util.CommonUtil;
 import com.nosaku.rattle.util.StringUtil;
 import com.nosaku.rattle.vo.ApiModelVo;
 import com.nosaku.rattle.vo.AppVo;
+import com.nosaku.rattle.vo.AuthConfigVo;
 import com.nosaku.rattle.vo.ProxySettingsVo;
 
 import javafx.application.Application;
@@ -89,6 +90,7 @@ public class App extends Application {
 	private Map<String, ApiModelVo> apiModelVoMap = new LinkedHashMap<>();
 	private TabPane centerTabs;
 	private TreeItem<ApiModelVo> rootTreeItem;
+	private TreeItem<ApiModelVo> authConfigTreeItem;
 	private TreeView<ApiModelVo> treeView;
 	private ProxySettingsVo proxySettings;
 	private ConsoleWindow consoleWindow;
@@ -117,11 +119,26 @@ public class App extends Application {
 		historyTreeItem.setName("History");
 		rootTreeItem = new TreeItem<>(historyTreeItem);
 		rootTreeItem.setExpanded(true);
-		centerTabs = new TabPane();
-		treeView = new TreeView<>(rootTreeItem);
 		
-		tabManager = new TabManager(centerTabs, rootTreeItem, treeView, apiModelVoMap,
-				tabId -> createApiTabContent(tabId), () -> saveApiModelVoMapAsJson());
+		ApiModelVo authConfigParent = new ApiModelVo();
+		authConfigParent.setName("Auth configurations");
+		authConfigTreeItem = new TreeItem<>(authConfigParent);
+		authConfigTreeItem.setExpanded(true);
+		
+		// Create a virtual root to hold both trees
+		ApiModelVo virtualRoot = new ApiModelVo();
+		virtualRoot.setName("");
+		TreeItem<ApiModelVo> virtualRootItem = new TreeItem<>(virtualRoot);
+		virtualRootItem.setExpanded(true);
+		virtualRootItem.getChildren().addAll(rootTreeItem, authConfigTreeItem);
+		
+		centerTabs = new TabPane();
+		treeView = new TreeView<>(virtualRootItem);
+		treeView.setShowRoot(false); // Hide the virtual root
+		
+		tabManager = new TabManager(centerTabs, rootTreeItem, authConfigTreeItem, treeView, apiModelVoMap,
+				tabId -> createApiTabContent(tabId), tabId -> createAuthConfigTabContent(tabId), 
+				() -> saveApiModelVoMapAsJson());
 		
 		// treeView.setEditable(true);
 		treeView.setCellFactory(new Callback<TreeView<ApiModelVo>, TreeCell<ApiModelVo>>() {
@@ -291,22 +308,43 @@ public class App extends Application {
 
 			List<ApiModelVo> apiModelVoList = appVo.getApiList();
 			Tab currentTab = null;
-		for (ApiModelVo apiModelVo : apiModelVoList) {
-			apiModelVoMap.put(apiModelVo.getId(), apiModelVo);
-			if (apiModelVo.isTabOpen()) {
-				Tab tab = tabManager.addNewTab(apiModelVo.getId(), true, false);
-				if (tab != null && apiModelVo.isTabOpen() && apiModelVo.isCurrentTab()) {
-						currentTab = tab;
+			int lastAuthConfigIndex = 0;
+			
+			for (ApiModelVo apiModelVo : apiModelVoList) {
+				apiModelVoMap.put(apiModelVo.getId(), apiModelVo);
+				
+				if (apiModelVo.isAuthConfig()) {
+					// Handle auth configuration
+					if (apiModelVo.isTabOpen()) {
+						Tab tab = tabManager.addNewAuthConfigTab(apiModelVo.getId(), true, false);
+						if (tab != null && apiModelVo.isTabOpen() && apiModelVo.isCurrentTab()) {
+							currentTab = tab;
+						}
+					} else {
+						TreeItem<ApiModelVo> newTreeItem = new TreeItem<>(apiModelVo);
+						authConfigTreeItem.getChildren().add(newTreeItem);
+					}
+					if (apiModelVo.getTabNbr() > lastAuthConfigIndex) {
+						lastAuthConfigIndex = apiModelVo.getTabNbr();
 					}
 				} else {
-					TreeItem<ApiModelVo> newTreeItem = new TreeItem<>(apiModelVo);
-					rootTreeItem.getChildren().add(newTreeItem);
-				}
-				if (apiModelVo.getTabNbr() > lastTabIndex) {
-					lastTabIndex = apiModelVo.getTabNbr();
+					// Handle API request
+					if (apiModelVo.isTabOpen()) {
+						Tab tab = tabManager.addNewTab(apiModelVo.getId(), true, false);
+						if (tab != null && apiModelVo.isTabOpen() && apiModelVo.isCurrentTab()) {
+							currentTab = tab;
+						}
+					} else {
+						TreeItem<ApiModelVo> newTreeItem = new TreeItem<>(apiModelVo);
+						rootTreeItem.getChildren().add(newTreeItem);
+					}
+					if (apiModelVo.getTabNbr() > lastTabIndex) {
+						lastTabIndex = apiModelVo.getTabNbr();
+					}
 				}
 			}
 			tabManager.setTabIndex(lastTabIndex);
+			tabManager.setAuthConfigIndex(lastAuthConfigIndex);
 			if (currentTab != null) {
 				centerTabs.getSelectionModel().select(currentTab);
 			}
@@ -713,5 +751,178 @@ public class App extends Application {
 
 	public void openTab(String id) {
 		tabManager.openTab(id);
+	}
+	
+	public void addNewAuthConfig() {
+		tabManager.addNewAuthConfigTab(null, true, false);
+	}
+	
+	private VBox createAuthConfigTabContent(String tabId) {
+		ApiModelVo apiModelVo = apiModelVoMap.get(tabId);
+		
+		// Get current tab for modification tracking
+		Tab currentTab = null;
+		for (Tab tab : centerTabs.getTabs()) {
+			if (tab.getId().equals(tabId)) {
+				currentTab = tab;
+				break;
+			}
+		}
+		Tab finalCurrentTab = currentTab;
+		
+		VBox mainLayout = new VBox(10);
+		mainLayout.setPadding(new Insets(15));
+		
+		// Title
+		Label titleLabel = new Label("Authentication Configuration");
+		titleLabel.setFont(new Font("Arial", 16));
+		titleLabel.setStyle("-fx-font-weight: bold;");
+		
+		// Auth Type Dropdown
+		Label authTypeLabel = new Label("Authentication Type:");
+		ComboBox<String> authTypeComboBox = new ComboBox<>(
+			FXCollections.observableArrayList("OIDC", "OAuth2", "Basic Auth", "API Key")
+		);
+		authTypeComboBox.setPromptText("Select authentication type");
+		authTypeComboBox.setPrefWidth(300);
+		
+		// Initialize auth config if not exists
+		if (apiModelVo.getAuthConfig() == null) {
+			apiModelVo.setAuthConfig(new com.nosaku.rattle.vo.AuthConfigVo());
+		}
+		
+		if (StringUtil.nonEmptyStr(apiModelVo.getAuthConfig().getAuthType())) {
+			authTypeComboBox.setValue(apiModelVo.getAuthConfig().getAuthType());
+		}
+		
+		VBox authTypeBox = new VBox(5);
+		authTypeBox.getChildren().addAll(authTypeLabel, authTypeComboBox);
+		
+		// Container for auth-type specific fields
+		VBox fieldsContainer = new VBox(10);
+		fieldsContainer.setPadding(new Insets(10, 0, 0, 0));
+		
+		// OIDC Fields
+		VBox oidcFields = createOidcFields(apiModelVo, finalCurrentTab);
+		
+		// Show OIDC fields if OIDC is selected
+		if ("OIDC".equals(authTypeComboBox.getValue())) {
+			fieldsContainer.getChildren().add(oidcFields);
+		}
+		
+		// Listen for auth type changes
+		authTypeComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
+			if (finalCurrentTab != null && !newVal.equals(oldVal)) {
+				tabManager.markTabAsModified(finalCurrentTab);
+			}
+			
+			apiModelVo.getAuthConfig().setAuthType(newVal);
+			fieldsContainer.getChildren().clear();
+			
+			if ("OIDC".equals(newVal)) {
+				fieldsContainer.getChildren().add(oidcFields);
+			} else {
+				// Placeholder for other auth types
+				Label comingSoonLabel = new Label("Configuration for " + newVal + " coming soon...");
+				comingSoonLabel.setStyle("-fx-text-fill: #666;");
+				fieldsContainer.getChildren().add(comingSoonLabel);
+			}
+		});
+		
+		mainLayout.getChildren().addAll(titleLabel, authTypeBox, fieldsContainer);
+		
+		return mainLayout;
+	}
+	
+	private VBox createOidcFields(ApiModelVo apiModelVo, Tab currentTab) {
+		VBox oidcBox = new VBox(10);
+		
+		// Token URL
+		Label tokenUrlLabel = new Label("Token URL:");
+		TextField tokenUrlField = new TextField();
+		tokenUrlField.setPromptText("https://your-auth-server.com/oauth/token");
+		tokenUrlField.setPrefWidth(400);
+		if (apiModelVo.getAuthConfig() != null && StringUtil.nonEmptyStr(apiModelVo.getAuthConfig().getTokenUrl())) {
+			tokenUrlField.setText(apiModelVo.getAuthConfig().getTokenUrl());
+		}
+		tokenUrlField.textProperty().addListener((obs, oldVal, newVal) -> {
+			if (currentTab != null && !newVal.equals(oldVal)) {
+				tabManager.markTabAsModified(currentTab);
+				apiModelVo.getAuthConfig().setTokenUrl(newVal);
+			}
+		});
+		
+		// Client ID
+		Label clientIdLabel = new Label("Client ID:");
+		TextField clientIdField = new TextField();
+		clientIdField.setPromptText("Your client ID");
+		clientIdField.setPrefWidth(400);
+		if (apiModelVo.getAuthConfig() != null && StringUtil.nonEmptyStr(apiModelVo.getAuthConfig().getClientId())) {
+			clientIdField.setText(apiModelVo.getAuthConfig().getClientId());
+		}
+		clientIdField.textProperty().addListener((obs, oldVal, newVal) -> {
+			if (currentTab != null && !newVal.equals(oldVal)) {
+				tabManager.markTabAsModified(currentTab);
+				apiModelVo.getAuthConfig().setClientId(newVal);
+			}
+		});
+		
+		// Client Secret
+		Label clientSecretLabel = new Label("Client Secret:");
+		TextField clientSecretField = new TextField();
+		clientSecretField.setPromptText("Your client secret");
+		clientSecretField.setPrefWidth(400);
+		if (apiModelVo.getAuthConfig() != null && StringUtil.nonEmptyStr(apiModelVo.getAuthConfig().getClientSecret())) {
+			clientSecretField.setText(apiModelVo.getAuthConfig().getClientSecret());
+		}
+		clientSecretField.textProperty().addListener((obs, oldVal, newVal) -> {
+			if (currentTab != null && !newVal.equals(oldVal)) {
+				tabManager.markTabAsModified(currentTab);
+				apiModelVo.getAuthConfig().setClientSecret(newVal);
+			}
+		});
+		
+		// Scope
+		Label scopeLabel = new Label("Scope:");
+		TextField scopeField = new TextField();
+		scopeField.setPromptText("openid profile email");
+		scopeField.setPrefWidth(400);
+		if (apiModelVo.getAuthConfig() != null && StringUtil.nonEmptyStr(apiModelVo.getAuthConfig().getScope())) {
+			scopeField.setText(apiModelVo.getAuthConfig().getScope());
+		}
+		scopeField.textProperty().addListener((obs, oldVal, newVal) -> {
+			if (currentTab != null && !newVal.equals(oldVal)) {
+				tabManager.markTabAsModified(currentTab);
+				apiModelVo.getAuthConfig().setScope(newVal);
+			}
+		});
+		
+		// Grant Type
+		Label grantTypeLabel = new Label("Grant Type:");
+		ComboBox<String> grantTypeComboBox = new ComboBox<>(
+			FXCollections.observableArrayList("client_credentials", "authorization_code", "password", "refresh_token")
+		);
+		grantTypeComboBox.setPrefWidth(400);
+		if (apiModelVo.getAuthConfig() != null && StringUtil.nonEmptyStr(apiModelVo.getAuthConfig().getGrantType())) {
+			grantTypeComboBox.setValue(apiModelVo.getAuthConfig().getGrantType());
+		} else {
+			grantTypeComboBox.setValue("client_credentials");
+		}
+		grantTypeComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
+			if (currentTab != null && !newVal.equals(oldVal)) {
+				tabManager.markTabAsModified(currentTab);
+				apiModelVo.getAuthConfig().setGrantType(newVal);
+			}
+		});
+		
+		oidcBox.getChildren().addAll(
+			tokenUrlLabel, tokenUrlField,
+			clientIdLabel, clientIdField,
+			clientSecretLabel, clientSecretField,
+			scopeLabel, scopeField,
+			grantTypeLabel, grantTypeComboBox
+		);
+		
+		return oidcBox;
 	}
 }

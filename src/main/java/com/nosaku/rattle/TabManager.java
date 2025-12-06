@@ -55,22 +55,29 @@ public class TabManager {
 	
 	private final TabPane tabPane;
 	private final TreeItem<ApiModelVo> rootTreeItem;
+	private final TreeItem<ApiModelVo> authConfigTreeItem;
 	private final TreeView<ApiModelVo> treeView;
 	private final Map<String, ApiModelVo> apiModelVoMap;
 	private final TabContentFactory contentFactory;
+	private final TabContentFactory authConfigContentFactory;
 	private final Runnable onSaveCallback;
 	
 	private int tabIndex;
+	private int authConfigIndex;
 	
-	public TabManager(TabPane tabPane, TreeItem<ApiModelVo> rootTreeItem, TreeView<ApiModelVo> treeView,
-			Map<String, ApiModelVo> apiModelVoMap, TabContentFactory contentFactory, Runnable onSaveCallback) {
+	public TabManager(TabPane tabPane, TreeItem<ApiModelVo> rootTreeItem, TreeItem<ApiModelVo> authConfigTreeItem,
+			TreeView<ApiModelVo> treeView, Map<String, ApiModelVo> apiModelVoMap, 
+			TabContentFactory contentFactory, TabContentFactory authConfigContentFactory, Runnable onSaveCallback) {
 		this.tabPane = tabPane;
 		this.rootTreeItem = rootTreeItem;
+		this.authConfigTreeItem = authConfigTreeItem;
 		this.treeView = treeView;
 		this.apiModelVoMap = apiModelVoMap;
 		this.contentFactory = contentFactory;
+		this.authConfigContentFactory = authConfigContentFactory;
 		this.onSaveCallback = onSaveCallback;
 		this.tabIndex = 0;
+		this.authConfigIndex = 0;
 	}
 	
 	public void setTabIndex(int tabIndex) {
@@ -79,6 +86,99 @@ public class TabManager {
 	
 	public int getTabIndex() {
 		return tabIndex;
+	}
+	
+	public void setAuthConfigIndex(int authConfigIndex) {
+		this.authConfigIndex = authConfigIndex;
+	}
+	
+	public int getAuthConfigIndex() {
+		return authConfigIndex;
+	}
+	
+	/**
+	 * Adds a new auth configuration tab to the tab pane
+	 */
+	public Tab addNewAuthConfigTab(String tabId, boolean isAddTreeItem, boolean isCloneItem) {
+		Tab tab = new Tab();
+		tab.setClosable(true);
+
+		ApiModelVo apiModelVo = null;
+		
+		if (tabId == null) {
+			String title = "Auth Config " + (++authConfigIndex);
+			apiModelVo = new ApiModelVo();
+			apiModelVo.setId(UUID.randomUUID().toString());
+			apiModelVo.setName(title);
+			apiModelVo.setTabNbr(authConfigIndex);
+			apiModelVo.setNewTab(true);
+			apiModelVo.setAuthConfig(true);
+			apiModelVoMap.put(apiModelVo.getId(), apiModelVo);
+			tab.setText(truncateTabTitle(title) + " *");
+			tab.setId(apiModelVo.getId());
+		} else {
+			apiModelVo = apiModelVoMap.get(tabId);
+			if (isCloneItem) {
+				++authConfigIndex;
+				ApiModelVo clonedModel = apiModelVo.clone();
+				clonedModel.setId(UUID.randomUUID().toString());
+				clonedModel.setName("(Copy) " + apiModelVo.getName());
+				clonedModel.setTabNbr(authConfigIndex);
+				clonedModel.setNewTab(true);
+				clonedModel.setModified(true);
+				clonedModel.setTabOpen(true);
+				clonedModel.setCurrentTab(true);
+				clonedModel.setAuthConfig(true);
+				apiModelVoMap.put(clonedModel.getId(), clonedModel);
+				tab.setText(truncateTabTitle(clonedModel.getName()) + " *");
+				tab.setId(clonedModel.getId());
+				apiModelVo = clonedModel;
+			} else {
+				tab.setText(truncateTabTitle(apiModelVo.getName()));
+				tab.setId(apiModelVo.getId());
+			}
+		}
+		
+		tabPane.getTabs().add(tab);
+		
+		VBox contentContainer = authConfigContentFactory.createTabContent(tab.getId());
+		contentContainer.setFocusTraversable(true);
+		tab.setContent(contentContainer);
+		
+		if (tabId == null || isAddTreeItem) {
+			TreeItem<ApiModelVo> newTreeItem = new TreeItem<>(apiModelVo);
+			
+			// If cloning, insert after the source item
+			if (isCloneItem && tabId != null) {
+				TreeItem<ApiModelVo> sourceTreeItem = findTreeItemById(tabId, authConfigTreeItem);
+				if (sourceTreeItem != null) {
+					int sourceIndex = authConfigTreeItem.getChildren().indexOf(sourceTreeItem);
+					authConfigTreeItem.getChildren().add(sourceIndex + 1, newTreeItem);
+				} else {
+					authConfigTreeItem.getChildren().add(newTreeItem);
+				}
+			} else {
+				authConfigTreeItem.getChildren().add(newTreeItem);
+			}
+			
+			treeView.getSelectionModel().select(newTreeItem);
+			tab.selectedProperty().addListener((observable, oldValue, newValue) -> {
+				if (newValue) {
+					treeView.getSelectionModel().select(newTreeItem);
+				}
+			});
+		}
+		
+		tab.setOnCloseRequest(event -> handleTabClose(tab, event));
+		
+		tabPane.getSelectionModel().select(tab);
+		Platform.runLater(() -> {
+			if (tab.getContent() != null) {
+				tab.getContent().requestFocus();
+			}
+		});
+		
+		return tab;
 	}
 	
 	/**
@@ -211,7 +311,13 @@ public class TabManager {
 			}
 		}
 		if (!isOpenTabFound) {
-			addNewTab(id, false, false);
+			// Check if it's an auth config or API request
+			ApiModelVo apiModelVo = apiModelVoMap.get(id);
+			if (apiModelVo != null && apiModelVo.isAuthConfig()) {
+				addNewAuthConfigTab(id, false, false);
+			} else {
+				addNewTab(id, false, false);
+			}
 		}
 	}
 	
@@ -331,7 +437,11 @@ public class TabManager {
 				apiModelVo.setCurrentTab(tab.isSelected());
 				VBox mainLayout = (VBox) tab.getContent();
 				if (mainLayout != null && !mainLayout.getChildren().isEmpty()) {
-					extractTabData(mainLayout, apiModelVo);
+					if (apiModelVo.isAuthConfig()) {
+						extractAuthConfigTabData(mainLayout, apiModelVo);
+					} else {
+						extractTabData(mainLayout, apiModelVo);
+					}
 				}
 				apiModelVo.setModified(false);
 			}
@@ -340,6 +450,12 @@ public class TabManager {
 				onSaveCallback.run();
 			}
 		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	private void extractAuthConfigTabData(VBox mainLayout, ApiModelVo apiModelVo) {
+		// Auth config data is already saved in real-time via listeners
+		// This method is here for consistency and future enhancements
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -423,7 +539,29 @@ public class TabManager {
 		if (id == null) {
 			return null;
 		}
+		// Search in rootTreeItem
 		for (TreeItem<ApiModelVo> item : rootTreeItem.getChildren()) {
+			if (item.getValue() != null && id.equals(item.getValue().getId())) {
+				return item;
+			}
+		}
+		// Search in authConfigTreeItem
+		for (TreeItem<ApiModelVo> item : authConfigTreeItem.getChildren()) {
+			if (item.getValue() != null && id.equals(item.getValue().getId())) {
+				return item;
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * Finds a tree item by its ApiModelVo ID in a specific parent tree
+	 */
+	private TreeItem<ApiModelVo> findTreeItemById(String id, TreeItem<ApiModelVo> parentTree) {
+		if (id == null) {
+			return null;
+		}
+		for (TreeItem<ApiModelVo> item : parentTree.getChildren()) {
 			if (item.getValue() != null && id.equals(item.getValue().getId())) {
 				return item;
 			}
