@@ -59,7 +59,6 @@ public class TabManager {
 	private final TreeView<ApiModelVo> treeView;
 	private final Map<String, ApiModelVo> apiModelVoMap;
 	private final TabContentFactory contentFactory;
-	private final TabContentFactory authConfigContentFactory;
 	private final Runnable onSaveCallback;
 	
 	private int tabIndex;
@@ -67,14 +66,13 @@ public class TabManager {
 	
 	public TabManager(TabPane tabPane, TreeItem<ApiModelVo> rootTreeItem, TreeItem<ApiModelVo> authConfigTreeItem,
 			TreeView<ApiModelVo> treeView, Map<String, ApiModelVo> apiModelVoMap, 
-			TabContentFactory contentFactory, TabContentFactory authConfigContentFactory, Runnable onSaveCallback) {
+			TabContentFactory contentFactory, Runnable onSaveCallback) {
 		this.tabPane = tabPane;
 		this.rootTreeItem = rootTreeItem;
 		this.authConfigTreeItem = authConfigTreeItem;
 		this.treeView = treeView;
 		this.apiModelVoMap = apiModelVoMap;
 		this.contentFactory = contentFactory;
-		this.authConfigContentFactory = authConfigContentFactory;
 		this.onSaveCallback = onSaveCallback;
 		this.tabIndex = 0;
 		this.authConfigIndex = 0;
@@ -141,7 +139,8 @@ public class TabManager {
 		
 		tabPane.getTabs().add(tab);
 		
-		VBox contentContainer = authConfigContentFactory.createTabContent(tab.getId());
+		// Use the same content factory for both API requests and auth configs
+		VBox contentContainer = contentFactory.createTabContent(tab.getId());
 		contentContainer.setFocusTraversable(true);
 		tab.setContent(contentContainer);
 		
@@ -437,11 +436,7 @@ public class TabManager {
 				apiModelVo.setCurrentTab(tab.isSelected());
 				VBox mainLayout = (VBox) tab.getContent();
 				if (mainLayout != null && !mainLayout.getChildren().isEmpty()) {
-					if (apiModelVo.isAuthConfig()) {
-						extractAuthConfigTabData(mainLayout, apiModelVo);
-					} else {
-						extractTabData(mainLayout, apiModelVo);
-					}
+					extractTabData(mainLayout, apiModelVo);
 				}
 				apiModelVo.setModified(false);
 			}
@@ -452,11 +447,11 @@ public class TabManager {
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
-	private void extractAuthConfigTabData(VBox mainLayout, ApiModelVo apiModelVo) {
-		// Auth config data is already saved in real-time via listeners
-		// This method is here for consistency and future enhancements
-	}
+//	@SuppressWarnings("unchecked")
+//	private void extractAuthConfigTabData(VBox mainLayout, ApiModelVo apiModelVo) {
+//		// Auth config data is already saved in real-time via listeners
+//		// This method is here for consistency and future enhancements
+//	}
 	
 	@SuppressWarnings("unchecked")
 	private void extractTabData(VBox mainLayout, ApiModelVo apiModelVo) {
@@ -473,19 +468,23 @@ public class TabManager {
 			if (mainContentSplit != null && mainContentSplit.getItems().size() > 0) {
 				TabPane topTabs = (TabPane) mainContentSplit.getItems().get(0);
 				
-				Tab paramsTab = topTabs.getTabs().get(0);
+				int paramsTabIndex = apiModelVo.isAuthConfig() ? 1 : 0;
+				int headersTabIndex = apiModelVo.isAuthConfig() ? 2 : 1;
+				int bodyTabIndex = apiModelVo.isAuthConfig() ? 3 : 2;
+				
+				Tab paramsTab = topTabs.getTabs().get(paramsTabIndex);
 				ScrollPane paramsScrollPane = (ScrollPane) paramsTab.getContent();
 				VBox paramsContainer = (VBox) paramsScrollPane.getContent();
 				Map<String, String> params = extractParamsFromContainer(paramsContainer);
 				apiModelVo.setParams(params);
 				
-				Tab headersTab = topTabs.getTabs().get(1);
+				Tab headersTab = topTabs.getTabs().get(headersTabIndex);
 				ScrollPane headersScrollPane = (ScrollPane) headersTab.getContent();
 				VBox headersContainer = (VBox) headersScrollPane.getContent();
 				Map<String, String> headers = extractParamsFromContainer(headersContainer);
 				apiModelVo.setHeaders(headers);
 				
-				Tab bodyTab = topTabs.getTabs().get(2);
+				Tab bodyTab = topTabs.getTabs().get(bodyTabIndex);
 				TextArea bodyTextArea = (TextArea) bodyTab.getContent();
 				apiModelVo.setBody(bodyTextArea.getText());
 			}

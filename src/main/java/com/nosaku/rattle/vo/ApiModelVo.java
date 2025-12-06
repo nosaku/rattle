@@ -39,8 +39,8 @@ public class ApiModelVo implements Cloneable {
 	private boolean isCurrentTab;
 	private String consoleLog;
 	private boolean isNewTab;
-	private boolean isAuthConfig; // Flag to distinguish auth configs from API requests
-	private AuthConfigVo authConfig; // Auth configuration data
+	private boolean isAuthConfig;
+	private String authType;
 
 	@Override
 	public String toString() {
@@ -208,11 +208,11 @@ public class ApiModelVo implements Cloneable {
 		this.isAuthConfig = isAuthConfig;
 	}
 
-	public AuthConfigVo getAuthConfig() {
-		return authConfig;
+	public String getAuthType() {
+		return authType;
 	}
 
-	public void setAuthConfig(AuthConfigVo authConfig) {
-		this.authConfig = authConfig;
+	public void setAuthType(String authType) {
+		this.authType = authType;
 	}
 }
