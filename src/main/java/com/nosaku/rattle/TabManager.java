@@ -130,7 +130,20 @@ public class TabManager {
 		
 		if (tabId == null || isAddTreeItem) {
 			TreeItem<ApiModelVo> newTreeItem = new TreeItem<>(apiModelVo);
-			rootTreeItem.getChildren().add(newTreeItem);
+			
+			// If cloning, insert after the source item
+			if (isCloneItem && tabId != null) {
+				TreeItem<ApiModelVo> sourceTreeItem = findTreeItemById(tabId);
+				if (sourceTreeItem != null) {
+					int sourceIndex = rootTreeItem.getChildren().indexOf(sourceTreeItem);
+					rootTreeItem.getChildren().add(sourceIndex + 1, newTreeItem);
+				} else {
+					rootTreeItem.getChildren().add(newTreeItem);
+				}
+			} else {
+				rootTreeItem.getChildren().add(newTreeItem);
+			}
+			
 			treeView.getSelectionModel().select(newTreeItem);
 			tab.selectedProperty().addListener((observable, oldValue, newValue) -> {
 				if (newValue) {
@@ -401,6 +414,21 @@ public class TabManager {
 			return cleanTitle.substring(0, 12) + "...";
 		}
 		return cleanTitle;
+	}
+	
+	/**
+	 * Finds a tree item by its ApiModelVo ID
+	 */
+	private TreeItem<ApiModelVo> findTreeItemById(String id) {
+		if (id == null) {
+			return null;
+		}
+		for (TreeItem<ApiModelVo> item : rootTreeItem.getChildren()) {
+			if (item.getValue() != null && id.equals(item.getValue().getId())) {
+				return item;
+			}
+		}
+		return null;
 	}
 	
 	/**
