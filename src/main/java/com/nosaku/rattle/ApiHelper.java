@@ -198,6 +198,39 @@ public class ApiHelper {
 						.uri(URI.create(getUrlWithParams(apiModelVo)));
 				setHeaders(requestBuilder, apiModelVo);
 				httpRequest = requestBuilder.DELETE().build();
+			} else if (CommonConstants.HTTP_METHOD_PATCH.equals(apiModelVo.getMethod())) {
+				HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+						.uri(URI.create(getUrlWithParams(apiModelVo)));
+				setHeaders(requestBuilder, apiModelVo);
+				String body = apiModelVo.getBody();
+				if (body != null && !body.trim().isEmpty()) {
+					try {
+						ObjectMapper mapper = new ObjectMapper();
+						Object jsonObject = mapper.readValue(body, Object.class);
+						String validJson = mapper.writeValueAsString(jsonObject);
+						requestBuilder.header("Content-Type", "application/json");
+						httpRequest = requestBuilder
+								.method("PATCH", HttpRequest.BodyPublishers.ofString(validJson))
+								.build();
+					} catch (Exception e) {
+						// If JSON parsing fails, send as-is
+						System.err.println("Warning: Invalid JSON format, sending as-is: " + e.getMessage());
+						requestBuilder.header("Content-Type", "application/json");
+						httpRequest = requestBuilder
+								.method("PATCH", HttpRequest.BodyPublishers.ofString(body))
+								.build();
+					}
+				} else if (apiModelVo.getParams() != null && !apiModelVo.getParams().isEmpty()) {
+					String paramBody = getParamBody(apiModelVo);
+					requestBuilder.header("Content-Type", "application/x-www-form-urlencoded");
+					httpRequest = requestBuilder
+							.method("PATCH", HttpRequest.BodyPublishers.ofString(paramBody))
+							.build();
+				} else {
+					httpRequest = requestBuilder
+							.method("PATCH", HttpRequest.BodyPublishers.noBody())
+							.build();
+				}
 			}
 			if (httpRequest != null) {
 				consoleLog.append("=== REQUEST ===\n");
@@ -212,7 +245,8 @@ public class ApiHelper {
 					consoleLog.append("\n--- Request Body ---\n");
 					consoleLog.append(apiModelVo.getBody()).append("\n");
 				} else if ((CommonConstants.HTTP_METHOD_POST.equals(apiModelVo.getMethod()) ||
-						   CommonConstants.HTTP_METHOD_PUT.equals(apiModelVo.getMethod())) && 
+						   CommonConstants.HTTP_METHOD_PUT.equals(apiModelVo.getMethod()) ||
+						   CommonConstants.HTTP_METHOD_PATCH.equals(apiModelVo.getMethod())) && 
 						   apiModelVo.getParams() != null && !apiModelVo.getParams().isEmpty()) {
 					consoleLog.append("\n--- Request Body (URL-encoded) ---\n");
 					apiModelVo.getParams().forEach((key, value) -> 
