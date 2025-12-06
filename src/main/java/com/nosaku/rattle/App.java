@@ -108,10 +108,10 @@ public class App extends Application {
 
 	@Override
 	public void start(Stage stage) throws Exception {
-		Label appTitle = new Label("Rattle");
+		Label appTitle = new Label(CommonConstants.APP_TITLE);
 		appTitle.setFont(new Font("Arial", 14));
 
-		Label copyright = new Label("© 2025 nosaku. All rights reserved.");
+		Label copyright = new Label(CommonConstants.COPYRIGHT_LABEL_TEXT);
 		HBox footer = new HBox(copyright);
 		footer.setAlignment(Pos.CENTER_RIGHT);
 		footer.setPadding(new Insets(5, 10, 5, 10));
@@ -975,7 +975,7 @@ public class App extends Application {
 		descriptionLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #333;");
 		descriptionLabel.setWrapText(true);
 
-		Label copyrightLabel = new Label("© 2025 nosaku. All rights reserved.");
+		Label copyrightLabel = new Label(CommonConstants.COPYRIGHT_LABEL_TEXT);
 		copyrightLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #555;");
 
 		rightBox.getChildren().addAll(appNameLabel, descriptionLabel, copyrightLabel);

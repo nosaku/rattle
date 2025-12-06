@@ -25,6 +25,8 @@ import java.util.Arrays;
 import java.util.Collection;
 
 public class CommonConstants {
+	public static final String APP_TITLE = "Rattle";
+	public static final String COPYRIGHT_LABEL_TEXT = "© 2025 nosaku. All rights reserved."; 
 	public static final String HTTP_METHOD_GET = "GET";
 	public static final String HTTP_METHOD_POST = "POST";
 	public static final String HTTP_METHOD_PUT = "PUT";
