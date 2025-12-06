@@ -1,3 +1,24 @@
+/*
+ * Copyright (c) 2025 nosaku
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.nosaku.rattle;
 
 import java.io.File;
@@ -6,8 +27,6 @@ import java.io.FileWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +39,7 @@ import org.fxmisc.richtext.CodeArea;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.iliareshetov.RichJsonFX;
+import com.nosaku.rattle.util.CommonConstants;
 import com.nosaku.rattle.util.StringUtil;
 import com.nosaku.rattle.vo.ApiModelVo;
 import com.nosaku.rattle.vo.AppVo;
@@ -40,7 +60,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
-import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
@@ -56,13 +75,10 @@ import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.control.TreeView.EditEvent;
-import javafx.scene.control.cell.TextFieldTreeCell;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -71,23 +87,9 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.util.Callback;
-import javafx.util.StringConverter;
 
 public class App extends Application {
-	private static final String FILE_NAME = "rattle.json";
 	private double lastDividerPosition = 0.2;
-	private static final Collection<String> HTTP_HEADERS = Arrays.asList(
-			"Accept", "Accept-Charset", "Accept-Encoding", "Accept-Language", "Accept-Datetime",
-			"Authorization", "Cache-Control", "Connection", "Content-Length", "Content-Type",
-			"Cookie", "Date", "Expect", "Forwarded", "From", "Host", "If-Match", "If-Modified-Since",
-			"If-None-Match", "If-Range", "If-Unmodified-Since", "Max-Forwards", "Origin", "Pragma",
-			"Proxy-Authorization", "Range", "Referer", "TE", "User-Agent", "Upgrade", "Via", "Warning",
-			"X-Requested-With", "X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto",
-			"X-API-Key", "X-Auth-Token", "X-CSRF-Token", "Access-Control-Allow-Origin",
-			"Access-Control-Allow-Methods", "Access-Control-Allow-Headers", "Access-Control-Max-Age",
-			"Access-Control-Allow-Credentials", "X-Frame-Options", "X-Content-Type-Options",
-			"Strict-Transport-Security", "Content-Security-Policy", "X-XSS-Protection"
-	);
 	private int tabIndex;
 	private Map<String, ApiModelVo> apiModelVoMap = new LinkedHashMap<>();
 	private TabPane centerTabs;
@@ -122,7 +124,7 @@ public class App extends Application {
 		treeView.setCellFactory(new Callback<TreeView<ApiModelVo>, TreeCell<ApiModelVo>>() {
 			@Override
 			public TreeCell<ApiModelVo> call(TreeView<ApiModelVo> p) {
-				return new RenameMenuTreeCell(centerTabs, App.this);
+				return new ContextMenuTreeCell(App.this);
 			}
 		});
 		treeView.setOnEditCommit(event -> {
@@ -291,7 +293,7 @@ public class App extends Application {
 		if (!dir.exists()) {
 			return;
 		}
-		File inFile = new File(dir, FILE_NAME);
+		File inFile = new File(dir, CommonConstants.FILE_NAME);
 		if (!inFile.exists()) {
 			return;
 		}
@@ -568,7 +570,7 @@ public class App extends Application {
 			keyField.setText(key);
 		}
 		if (isHeaderRow) {
-			TextFields.bindAutoCompletion(keyField, HTTP_HEADERS);
+			TextFields.bindAutoCompletion(keyField, CommonConstants.HTTP_HEADERS);
 		}
 		TextField valueField = new TextField();
 		valueField.setId("value");
@@ -609,75 +611,6 @@ public class App extends Application {
 		return row;
 	}
 
-	private static class RenameMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
-		private ContextMenu menu = new ContextMenu();
-		private TabPane centerTabs;
-		private App app;
-		private boolean forceEdit = false;
-
-		public RenameMenuTreeCell(TabPane centerTabs, App app) {
-			super(createConverter());
-			this.centerTabs = centerTabs;
-			this.app = app;
-
-			MenuItem renameItem = new MenuItem("Rename");
-			menu.getItems().add(renameItem);
-			renameItem.setOnAction(event -> {
-				getTreeView().setEditable(true);
-				startEdit();
-			});
-			MenuItem deleteItem = new MenuItem("Delete");
-			menu.getItems().add(deleteItem);
-			deleteItem.setOnAction(event -> {
-				app.deleteTreeItem(getTreeItem());
-			});
-			
-			setOnMouseClicked(new EventHandler<MouseEvent>() {
-				@Override
-				public void handle(MouseEvent event) {
-					if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
-						if (getItem() != null && getItem().getId() != null) {
-							app.openTab(getItem().getId());
-						}
-					}
-				}
-			});
-		}
-
-		@Override
-		public void updateItem(ApiModelVo item, boolean empty) {
-			super.updateItem(item, empty);
-
-			if (!isEditing()) {
-				setContextMenu(menu);
-				getTreeView().setEditable(false);
-			}
-		}
-
-		@Override
-		public void startEdit() {
-			if (getTreeItem() != null && !isEmpty()) {
-				super.startEdit();
-			}
-		}
-
-		private static StringConverter<ApiModelVo> createConverter() {
-			return new StringConverter<ApiModelVo>() {
-				@Override
-				public String toString(ApiModelVo object) {
-					return object.getName();
-				}
-
-				@Override
-				public ApiModelVo fromString(String string) {
-					ApiModelVo apiModelVo = new ApiModelVo();
-					apiModelVo.setName(string);
-					return apiModelVo;
-				}
-			};
-		}
-	}
-
 	private void renameTreeItem(EditEvent<ApiModelVo> event, TabPane centerTabs) {
 		ApiModelVo existingModel = event.getTreeItem().getValue();
 		String newName = event.getNewValue().getName();
@@ -698,7 +631,7 @@ public class App extends Application {
 		}
 	}
 
-	private void deleteTreeItem(TreeItem<ApiModelVo> treeItem) {
+	public void deleteTreeItem(TreeItem<ApiModelVo> treeItem) {
 		if (treeItem == null || treeItem.getValue() == null) {
 			return;
 		}
@@ -977,7 +910,7 @@ public class App extends Application {
 		if (!dir.exists()) {
 			dir.mkdirs();
 		}
-		File outFile = new File(dir, FILE_NAME);
+		File outFile = new File(dir, CommonConstants.FILE_NAME);
 		try (FileWriter out = new FileWriter(outFile)) {
 			AppVo appVo = new AppVo();
 			List<ApiModelVo> apiModelVoList = new ArrayList<>();
@@ -1163,7 +1096,7 @@ public class App extends Application {
 		return params;
 	}
 
-	private void openTab(String id) {
+	public void openTab(String id) {
 		boolean isOpenTabFound = false;
 		for (Tab tab : centerTabs.getTabs()) {
 			if (tab.getId().equals(id)) {
