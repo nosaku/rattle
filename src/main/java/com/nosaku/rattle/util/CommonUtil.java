@@ -21,8 +21,11 @@
  */
 package com.nosaku.rattle.util;
 
-public class StringUtil {
-	public static boolean nonEmptyStr(String str) {
-		return (str != null && (!str.trim().equals(""))); 
+public class CommonUtil {
+	public static String getStackTraceAsString(Throwable throwable) {
+		java.io.StringWriter sw = new java.io.StringWriter();
+		java.io.PrintWriter pw = new java.io.PrintWriter(sw);
+		throwable.printStackTrace(pw);
+		return sw.toString();
 	}
 }
