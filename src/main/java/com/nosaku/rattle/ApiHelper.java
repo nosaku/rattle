@@ -9,10 +9,11 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.security.cert.X509Certificate;
+
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import java.security.cert.X509Certificate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
@@ -122,35 +123,14 @@ public class ApiHelper {
 		try {
 			HttpRequest httpRequest = null;
 			if (CommonConstants.HTTP_METHOD_GET.equals(apiModelVo.getMethod())) {
-				String url = apiModelVo.getUrl();
-				if (apiModelVo.getParams() != null && !apiModelVo.getParams().isEmpty()) {
-					StringBuilder urlBuilder = new StringBuilder(url);
-					urlBuilder.append(url.contains("?") ? "&" : "?");
-					apiModelVo.getParams().forEach((key, value) -> 
-						urlBuilder.append(key).append("=").append(value).append("&")
-					);
-					url = urlBuilder.toString().replaceAll("&$", "");
-				}
 				HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-						.uri(URI.create(url));
-				
-				if (apiModelVo.getHeaders() != null && !apiModelVo.getHeaders().isEmpty()) {
-					apiModelVo.getHeaders().forEach((key, value) -> 
-						requestBuilder.header(key, value)
-					);
-				}
-				
+						.uri(URI.create(getUrlWithParams(apiModelVo)));
+				setHeaders(requestBuilder, apiModelVo);
 				httpRequest = requestBuilder.GET().build();
 			} else if (CommonConstants.HTTP_METHOD_POST.equals(apiModelVo.getMethod())) {
 				HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-						.uri(URI.create(apiModelVo.getUrl()));
-				
-				if (apiModelVo.getHeaders() != null && !apiModelVo.getHeaders().isEmpty()) {
-					apiModelVo.getHeaders().forEach((key, value) -> 
-						requestBuilder.header(key, value)
-					);
-				}
-				
+						.uri(URI.create(getUrlWithParams(apiModelVo)));
+				setHeaders(requestBuilder, apiModelVo);
 				String body = apiModelVo.getBody();
 				if (body != null && !body.trim().isEmpty()) {
 					try {
@@ -170,11 +150,7 @@ public class ApiHelper {
 								.build();
 					}
 				} else if (apiModelVo.getParams() != null && !apiModelVo.getParams().isEmpty()) {
-					StringBuilder paramBuilder = new StringBuilder();
-					apiModelVo.getParams().forEach((key, value) -> {
-						paramBuilder.append(key).append("=").append(value).append("&");
-					});
-					String paramBody = paramBuilder.toString().replaceAll("&$", "");
+					String paramBody = getParamBody(apiModelVo);
 					requestBuilder.header("Content-Type", "application/x-www-form-urlencoded");
 					httpRequest = requestBuilder
 							.POST(HttpRequest.BodyPublishers.ofString(paramBody))
@@ -186,14 +162,8 @@ public class ApiHelper {
 				}
 			} else if (CommonConstants.HTTP_METHOD_PUT.equals(apiModelVo.getMethod())) {
 				HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-						.uri(URI.create(apiModelVo.getUrl()));
-				
-				if (apiModelVo.getHeaders() != null && !apiModelVo.getHeaders().isEmpty()) {
-					apiModelVo.getHeaders().forEach((key, value) -> 
-						requestBuilder.header(key, value)
-					);
-				}
-				
+						.uri(URI.create(getUrlWithParams(apiModelVo)));
+				setHeaders(requestBuilder, apiModelVo);
 				String body = apiModelVo.getBody();
 				if (body != null && !body.trim().isEmpty()) {
 					try {
@@ -213,11 +183,7 @@ public class ApiHelper {
 								.build();
 					}
 				} else if (apiModelVo.getParams() != null && !apiModelVo.getParams().isEmpty()) {
-					StringBuilder paramBuilder = new StringBuilder();
-					apiModelVo.getParams().forEach((key, value) -> {
-						paramBuilder.append(key).append("=").append(value).append("&");
-					});
-					String paramBody = paramBuilder.toString().replaceAll("&$", "");
+					String paramBody = getParamBody(apiModelVo);
 					requestBuilder.header("Content-Type", "application/x-www-form-urlencoded");
 					httpRequest = requestBuilder
 							.PUT(HttpRequest.BodyPublishers.ofString(paramBody))
@@ -228,24 +194,9 @@ public class ApiHelper {
 							.build();
 				}
 			} else if (CommonConstants.HTTP_METHOD_DELETE.equals(apiModelVo.getMethod())) {
-				String url = apiModelVo.getUrl();
-				if (apiModelVo.getParams() != null && !apiModelVo.getParams().isEmpty()) {
-					StringBuilder urlBuilder = new StringBuilder(url);
-					urlBuilder.append(url.contains("?") ? "&" : "?");
-					apiModelVo.getParams().forEach((key, value) -> 
-						urlBuilder.append(key).append("=").append(value).append("&")
-					);
-					url = urlBuilder.toString().replaceAll("&$", "");
-				}
 				HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-						.uri(URI.create(url));
-				
-				if (apiModelVo.getHeaders() != null && !apiModelVo.getHeaders().isEmpty()) {
-					apiModelVo.getHeaders().forEach((key, value) -> 
-						requestBuilder.header(key, value)
-					);
-				}
-				
+						.uri(URI.create(getUrlWithParams(apiModelVo)));
+				setHeaders(requestBuilder, apiModelVo);
 				httpRequest = requestBuilder.DELETE().build();
 			}
 			if (httpRequest != null) {
@@ -304,5 +255,35 @@ public class ApiHelper {
 			apiModelVo.setConsoleLog(consoleLog.toString());
 			throw e;
 		}
+	}
+
+	private String getUrlWithParams(ApiModelVo apiModelVo) {
+		String url = apiModelVo.getUrl();
+		if (apiModelVo.getParams() != null && !apiModelVo.getParams().isEmpty()) {
+			StringBuilder urlBuilder = new StringBuilder(url);
+			urlBuilder.append(url.contains("?") ? "&" : "?");
+			apiModelVo.getParams().forEach((key, value) -> 
+				urlBuilder.append(key).append("=").append(value).append("&")
+			);
+			url = urlBuilder.toString().replaceAll("&$", "");
+		}
+		return url;
+	}
+
+	private void setHeaders(HttpRequest.Builder requestBuilder, ApiModelVo apiModelVo) {
+		if (apiModelVo.getHeaders() != null && !apiModelVo.getHeaders().isEmpty()) {
+			apiModelVo.getHeaders().forEach((key, value) -> 
+				requestBuilder.header(key, value)
+			);
+		}		
+	}
+
+	private String getParamBody(ApiModelVo apiModelVo) {
+		StringBuilder paramBuilder = new StringBuilder();
+		apiModelVo.getParams().forEach((key, value) -> {
+			paramBuilder.append(key).append("=").append(value).append("&");
+		});
+		String paramBody = paramBuilder.toString().replaceAll("&$", "");
+		return paramBody;
 	}
 }
