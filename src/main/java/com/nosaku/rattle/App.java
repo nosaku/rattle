@@ -96,8 +96,11 @@ public class App extends Application {
 	private TreeItem<ApiModelVo> rootTreeItem;
 	private TreeView<ApiModelVo> treeView;
 	private ProxySettingsVo proxySettings;
-	private TextArea consoleArea;
-	private Stage consoleStage;
+	private ConsoleWindow consoleWindow;
+
+	public App() {
+		this.consoleWindow = new ConsoleWindow();
+	}
 
 	public static void main(String[] args) {
 		Application.launch(args);
@@ -219,7 +222,7 @@ public class App extends Application {
 		viewMenu.setMnemonicParsing(true);
 		MenuItem viewConsoleMenuItem = new MenuItem("View _Console");
 		viewConsoleMenuItem.setMnemonicParsing(true);
-		viewConsoleMenuItem.setOnAction(e -> showConsoleWindow());
+		viewConsoleMenuItem.setOnAction(e -> consoleWindow.show(centerTabs.getScene().getWindow()));
 		viewConsoleMenuItem.setAccelerator(
 				new KeyCodeCombination(KeyCode.C, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
 		viewMenu.getItems().add(viewConsoleMenuItem);
@@ -278,8 +281,8 @@ public class App extends Application {
 				});
 			}
 			saveAllTabs();
-			if (consoleStage != null && consoleStage.isShowing()) {
-				consoleStage.close();
+			if (consoleWindow.isShowing()) {
+				consoleWindow.close();
 			}
 		});
 
@@ -875,7 +878,7 @@ public class App extends Application {
 				}
 
 				if (apiModelVo.getConsoleLog() != null) {
-					logToConsole(apiModelVo.getConsoleLog());
+					consoleWindow.log(apiModelVo.getConsoleLog());
 				}
 			}
 
@@ -887,14 +890,14 @@ public class App extends Application {
 				if (apiModelVo.getResponse() != null && !apiModelVo.getResponse().isEmpty()) {
 					responseArea.appendText(apiModelVo.getResponse());
 					if (apiModelVo.getConsoleLog() != null) {
-						logToConsole(apiModelVo.getConsoleLog());
+						consoleWindow.log(apiModelVo.getConsoleLog());
 					}
 				} else {
 					Throwable exception = getException();
 					responseArea.appendText("Error: " + exception.getClass().getName() + "\n" + "Message: "
 							+ exception.getMessage() + "\n\n" + "Stack Trace:\n" + getStackTraceAsString(exception));
 					if (apiModelVo.getConsoleLog() != null) {
-						logToConsole(apiModelVo.getConsoleLog());
+						consoleWindow.log(apiModelVo.getConsoleLog());
 					}
 				}
 				responseArea.scrollYToPixel(0);
@@ -981,67 +984,7 @@ public class App extends Application {
 		aboutAlert.showAndWait();
 	}
 
-	private void showConsoleWindow() {
-		if (consoleStage == null) {
-			consoleStage = new Stage();
-			consoleStage.setTitle("Console - HTTP Request/Response Details");
-			consoleStage.setResizable(true);
-			consoleStage.setMaximized(false);
 
-			// Set icon for console window
-			Image icon = new Image("rattlesnake.png");
-			consoleStage.getIcons().add(icon);
-
-			consoleArea = new TextArea();
-			consoleArea.setEditable(false);
-			consoleArea.setWrapText(false);
-			consoleArea.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 12px;");
-
-			Button clearButton = new Button("Clear Console");
-			clearButton.setOnAction(e -> consoleArea.clear());
-
-			HBox buttonBar = new HBox(10, clearButton);
-			buttonBar.setPadding(new Insets(5));
-			buttonBar.setStyle("-fx-background-color: #f0f0f0;");
-
-			VBox consoleLayout = new VBox(buttonBar, consoleArea);
-			VBox.setVgrow(consoleArea, Priority.ALWAYS);
-
-			double consoleWidth = 800;
-			double consoleHeight = 600;
-			if (centerTabs.getScene() != null && centerTabs.getScene().getWindow() != null) {
-				Stage mainStage = (Stage) centerTabs.getScene().getWindow();
-				consoleWidth = mainStage.getWidth() / 2;
-				consoleHeight = mainStage.getHeight() / 2;
-			}
-
-			Scene consoleScene = new Scene(consoleLayout, consoleWidth, consoleHeight);
-			consoleStage.setScene(consoleScene);
-			// consoleStage.initOwner(centerTabs.getScene().getWindow());
-
-			consoleStage.setOnCloseRequest(e -> consoleStage = null);
-		}
-
-		if (!consoleStage.isShowing()) {
-			consoleStage.show();
-			// Position with offset from main window
-			if (centerTabs.getScene() != null && centerTabs.getScene().getWindow() != null) {
-				Stage mainStage = (Stage) centerTabs.getScene().getWindow();
-				consoleStage.setX(mainStage.getX() + 50);
-				consoleStage.setY(mainStage.getY() + 50);
-			}
-		} else {
-			consoleStage.toFront();
-		}
-	}
-
-	private void logToConsole(String message) {
-		if (consoleArea != null) {
-			Platform.runLater(() -> {
-				consoleArea.appendText(message + "\n");
-			});
-		}
-	}
 
 	private String getStackTraceAsString(Throwable throwable) {
 		java.io.StringWriter sw = new java.io.StringWriter();
