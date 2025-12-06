@@ -179,60 +179,37 @@ public class App extends Application {
 
 		BorderPane root = new BorderPane();
 
-		MenuBar menuBar = new MenuBar();
-		Menu fileMenu = new Menu("_File");
-		fileMenu.setMnemonicParsing(true);
-		MenuItem newRequestMenuItem = new MenuItem("New Reques_t");
-		newRequestMenuItem.setMnemonicParsing(true);
-		newRequestMenuItem.setOnAction(e -> addNewTab(centerTabs, rootTreeItem, treeView, null, true));
-		newRequestMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.T, KeyCombination.CONTROL_DOWN));
+		MenuBar menuBar = new MenuBarBuilder(new MenuBarBuilder.MenuCallbacks() {
+			@Override
+			public void onNewRequest() {
+				addNewTab(centerTabs, rootTreeItem, treeView, null, true);
+			}
 
-		MenuItem saveMenuItem = new MenuItem("_Save");
-		saveMenuItem.setMnemonicParsing(true);
-		saveMenuItem.setOnAction(e -> saveCurrentTab());
-		saveMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN));
+			@Override
+			public void onSave() {
+				saveCurrentTab();
+			}
 
-		MenuItem saveAllMenuItem = new MenuItem("S_ave All");
-		saveAllMenuItem.setMnemonicParsing(true);
-		saveAllMenuItem.setOnAction(e -> saveAllTabs());
-		saveAllMenuItem.setAccelerator(
-				new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
+			@Override
+			public void onSaveAll() {
+				saveAllTabs();
+			}
 
-		MenuItem exitMenuItem = new MenuItem("E_xit");
-		exitMenuItem.setMnemonicParsing(true);
-		exitMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.X, KeyCombination.ALT_DOWN));
-		exitMenuItem.setOnAction(e -> {
-			Platform.exit();
-		});
+			@Override
+			public void onViewConsole() {
+				consoleWindow.show(centerTabs.getScene().getWindow());
+			}
 
-		Menu helpMenu = new Menu("_Help");
-		helpMenu.setMnemonicParsing(true);
-		MenuItem aboutMenuItem = new MenuItem("_About");
-		aboutMenuItem.setMnemonicParsing(true);
-		aboutMenuItem.setOnAction(e -> AboutDialog.show(centerTabs.getScene().getWindow()));
-		helpMenu.getItems().add(aboutMenuItem);
+			@Override
+			public void onProxySettings() {
+				openProxySettingsDialog();
+			}
 
-		Menu settingsMenu = new Menu("_Settings");
-		settingsMenu.setMnemonicParsing(true);
-		MenuItem proxySettingsMenuItem = new MenuItem("_Proxy Settings");
-		proxySettingsMenuItem.setMnemonicParsing(true);
-		proxySettingsMenuItem.setOnAction(e -> openProxySettingsDialog());
-		settingsMenu.getItems().add(proxySettingsMenuItem);
-
-		Menu viewMenu = new Menu("_View");
-		viewMenu.setMnemonicParsing(true);
-		MenuItem viewConsoleMenuItem = new MenuItem("View _Console");
-		viewConsoleMenuItem.setMnemonicParsing(true);
-		viewConsoleMenuItem.setOnAction(e -> consoleWindow.show(centerTabs.getScene().getWindow()));
-		viewConsoleMenuItem.setAccelerator(
-				new KeyCodeCombination(KeyCode.C, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
-		viewMenu.getItems().add(viewConsoleMenuItem);
-
-		fileMenu.getItems().addAll(newRequestMenuItem, saveMenuItem, saveAllMenuItem, exitMenuItem);
-		menuBar.getMenus().add(fileMenu);
-		menuBar.getMenus().add(viewMenu);
-		menuBar.getMenus().add(settingsMenu);
-		menuBar.getMenus().add(helpMenu);
+			@Override
+			public void onAbout() {
+				AboutDialog.show(centerTabs.getScene().getWindow());
+			}
+		}).build();
 
 		VBox topContainer = new VBox(menuBar/* , header */);
 		root.setTop(topContainer);
