@@ -40,6 +40,7 @@ import org.fxmisc.richtext.CodeArea;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.iliareshetov.RichJsonFX;
 import com.nosaku.rattle.util.CommonConstants;
+import com.nosaku.rattle.util.CommonUtil;
 import com.nosaku.rattle.util.StringUtil;
 import com.nosaku.rattle.vo.ApiModelVo;
 import com.nosaku.rattle.vo.AppVo;
@@ -208,7 +209,7 @@ public class App extends Application {
 		helpMenu.setMnemonicParsing(true);
 		MenuItem aboutMenuItem = new MenuItem("_About");
 		aboutMenuItem.setMnemonicParsing(true);
-		aboutMenuItem.setOnAction(e -> showAboutDialog());
+		aboutMenuItem.setOnAction(e -> AboutDialog.show(centerTabs.getScene().getWindow()));
 		helpMenu.getItems().add(aboutMenuItem);
 
 		Menu settingsMenu = new Menu("_Settings");
@@ -857,7 +858,7 @@ public class App extends Application {
 					ApiHelper.getInstance().invokeApi(apiModelVo);
 				} catch (Exception e) {
 					apiModelVo.setResponse("Error: " + e.getClass().getName() + "\n" + "Message: " + e.getMessage()
-							+ "\n\n" + "Stack Trace:\n" + getStackTraceAsString(e));
+							+ "\n\n" + "Stack Trace:\n" + CommonUtil.getStackTraceAsString(e));
 					throw e;
 				}
 				return null;
@@ -895,7 +896,7 @@ public class App extends Application {
 				} else {
 					Throwable exception = getException();
 					responseArea.appendText("Error: " + exception.getClass().getName() + "\n" + "Message: "
-							+ exception.getMessage() + "\n\n" + "Stack Trace:\n" + getStackTraceAsString(exception));
+							+ exception.getMessage() + "\n\n" + "Stack Trace:\n" + CommonUtil.getStackTraceAsString(exception));
 					if (apiModelVo.getConsoleLog() != null) {
 						consoleWindow.log(apiModelVo.getConsoleLog());
 					}
@@ -935,62 +936,6 @@ public class App extends Application {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-	}
-
-	private void showAboutDialog() {
-		Alert aboutAlert = new Alert(Alert.AlertType.INFORMATION);
-		aboutAlert.setTitle("About Rattle");
-		aboutAlert.setHeaderText("About Rattle");
-
-		Image iconImage = null;
-		try {
-			iconImage = new Image(Objects.requireNonNull(getClass().getResourceAsStream("/rattlesnake.png")));
-		} catch (Exception e) {
-			iconImage = null;
-		}
-		if (iconImage != null) {
-			Stage dialogStage = (Stage) aboutAlert.getDialogPane().getScene().getWindow();
-			dialogStage.getIcons().add(iconImage);
-		}
-
-		HBox content = new HBox(20);
-		content.setAlignment(Pos.CENTER_LEFT);
-		content.setPadding(new Insets(20));
-
-		javafx.scene.image.ImageView imageView = new javafx.scene.image.ImageView();
-		if (iconImage != null) {
-			imageView.setImage(iconImage);
-			imageView.setFitWidth(120);
-			imageView.setPreserveRatio(true);
-		}
-
-		VBox rightBox = new VBox(10);
-		rightBox.setAlignment(Pos.CENTER_LEFT);
-
-		Label appNameLabel = new Label("Rattle API Client");
-		appNameLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-
-		Label descriptionLabel = new Label(
-				"Rattle is an API client for testing and managing RESTful APIs.\n\nFeatures:\n- Tabbed requests\n- JSON highlighting\n- Request history\n- Easy parameter and header editing\n\nEnjoy productivity and simplicity for your API workflow!");
-		descriptionLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #333;");
-		descriptionLabel.setWrapText(true);
-
-		Label copyrightLabel = new Label(CommonConstants.COPYRIGHT_LABEL_TEXT);
-		copyrightLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #555;");
-
-		rightBox.getChildren().addAll(appNameLabel, descriptionLabel, copyrightLabel);
-		content.getChildren().addAll(imageView, rightBox);
-		aboutAlert.getDialogPane().setContent(content);
-		aboutAlert.showAndWait();
-	}
-
-
-
-	private String getStackTraceAsString(Throwable throwable) {
-		java.io.StringWriter sw = new java.io.StringWriter();
-		java.io.PrintWriter pw = new java.io.PrintWriter(sw);
-		throwable.printStackTrace(pw);
-		return sw.toString();
 	}
 
 	private void openProxySettingsDialog() {
