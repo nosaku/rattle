@@ -43,6 +43,11 @@ public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 			getTreeView().setEditable(true);
 			startEdit();
 		});
+		MenuItem cloneItem = new MenuItem("Clone");
+		menu.getItems().add(cloneItem);
+		cloneItem.setOnAction(event -> {
+			app.cloneTreeItem(getTreeItem());
+		});
 		MenuItem deleteItem = new MenuItem("Delete");
 		menu.getItems().add(deleteItem);
 		deleteItem.setOnAction(event -> {

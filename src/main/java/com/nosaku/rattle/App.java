@@ -163,7 +163,7 @@ public class App extends Application {
 		leftPanel.getChildren().addAll(addButton, treeView);
 		leftPanel.setMinWidth(150);
 		addButton.setOnAction(event -> {
-			tabManager.addNewTab(null, true);
+			tabManager.addNewTab(null, true, false);
 		});
 
 		SplitPane splitPane = new SplitPane();
@@ -181,7 +181,7 @@ public class App extends Application {
 		MenuBar menuBar = new MenuBarBuilder(new MenuBarBuilder.MenuCallbacks() {
 			@Override
 			public void onNewRequest() {
-				tabManager.addNewTab(null, true);
+				tabManager.addNewTab(null, true, false);
 			}
 
 			@Override
@@ -226,7 +226,7 @@ public class App extends Application {
 				new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN),
 				() -> tabManager.saveAllTabs());
 		scene.getAccelerators().put(new KeyCodeCombination(KeyCode.W, KeyCombination.CONTROL_DOWN),
-				() -> tabManager.addNewTab(null, true));
+				() -> tabManager.addNewTab(null, true, false));
 		scene.getAccelerators().put(new KeyCodeCombination(KeyCode.W, KeyCombination.CONTROL_DOWN),
 				() -> tabManager.closeCurrentTab());
 		scene.getAccelerators().put(new KeyCodeCombination(KeyCode.X, KeyCombination.ALT_DOWN), () -> Platform.exit());
@@ -249,11 +249,13 @@ public class App extends Application {
 							entry.getValue().setNewTab(false);
 						}
 					} else {
+						List<String> keysToRemove = new ArrayList<>();
 						for (Map.Entry<String, ApiModelVo> entry : apiModelVoMap.entrySet()) {
 							if (entry.getValue().isNewTab()) {
-								apiModelVoMap.remove(entry.getKey());
+								keysToRemove.add(entry.getKey());
 							}
 						}
+						keysToRemove.forEach(apiModelVoMap::remove);
 					}
 				});
 			}
@@ -292,7 +294,7 @@ public class App extends Application {
 		for (ApiModelVo apiModelVo : apiModelVoList) {
 			apiModelVoMap.put(apiModelVo.getId(), apiModelVo);
 			if (apiModelVo.isTabOpen()) {
-				Tab tab = tabManager.addNewTab(apiModelVo.getId(), true);
+				Tab tab = tabManager.addNewTab(apiModelVo.getId(), true, false);
 				if (tab != null && apiModelVo.isTabOpen() && apiModelVo.isCurrentTab()) {
 						currentTab = tab;
 					}
@@ -528,6 +530,10 @@ public class App extends Application {
 				break;
 			}
 		}
+	}
+
+	public void cloneTreeItem(TreeItem<ApiModelVo> treeItem) {
+		tabManager.addNewTab(treeItem.getValue().getId(), true, true);
 	}
 
 	public void deleteTreeItem(TreeItem<ApiModelVo> treeItem) {

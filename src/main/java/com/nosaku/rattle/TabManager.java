@@ -84,8 +84,10 @@ public class TabManager {
 	/**
 	 * Adds a new tab to the tab pane
 	 */
-	public Tab addNewTab(String tabId, boolean isAddTreeItem) {
+	public Tab addNewTab(String tabId, boolean isAddTreeItem, boolean isCloneItem) {
 		Tab tab = new Tab();
+		tab.setClosable(true);				
+
 		ApiModelVo apiModelVo = null;
 		
 		if (tabId == null) {
@@ -98,12 +100,26 @@ public class TabManager {
 			apiModelVoMap.put(apiModelVo.getId(), apiModelVo);
 			tab.setText(truncateTabTitle(title) + " *");
 			tab.setId(apiModelVo.getId());
-			tab.setClosable(true);
 		} else {
 			apiModelVo = apiModelVoMap.get(tabId);
-			tab.setText(truncateTabTitle(apiModelVo.getName()));
-			tab.setId(apiModelVo.getId());
-			tab.setClosable(true);
+			if (isCloneItem) {
+				++tabIndex;
+				ApiModelVo clonedModel = apiModelVo.clone();
+				clonedModel.setId(UUID.randomUUID().toString());
+				clonedModel.setName("(Copy) " + apiModelVo.getName());
+				clonedModel.setTabNbr(tabIndex);
+				clonedModel.setNewTab(true);
+				clonedModel.setModified(true);
+				clonedModel.setTabOpen(true);
+				clonedModel.setCurrentTab(true);
+				apiModelVoMap.put(clonedModel.getId(), clonedModel);
+				tab.setText(truncateTabTitle(clonedModel.getName()) + " *");
+				tab.setId(clonedModel.getId());
+				apiModelVo = clonedModel;
+			} else {
+				tab.setText(truncateTabTitle(apiModelVo.getName()));
+				tab.setId(apiModelVo.getId());
+			}
 		}
 		
 		tabPane.getTabs().add(tab);
@@ -115,6 +131,7 @@ public class TabManager {
 		if (tabId == null || isAddTreeItem) {
 			TreeItem<ApiModelVo> newTreeItem = new TreeItem<>(apiModelVo);
 			rootTreeItem.getChildren().add(newTreeItem);
+			treeView.getSelectionModel().select(newTreeItem);
 			tab.selectedProperty().addListener((observable, oldValue, newValue) -> {
 				if (newValue) {
 					treeView.getSelectionModel().select(newTreeItem);
@@ -181,7 +198,7 @@ public class TabManager {
 			}
 		}
 		if (!isOpenTabFound) {
-			addNewTab(id, false);
+			addNewTab(id, false, false);
 		}
 	}
 	
