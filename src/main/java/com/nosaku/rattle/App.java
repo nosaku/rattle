@@ -31,7 +31,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 
 import org.controlsfx.control.textfield.TextFields;
 import org.fxmisc.flowless.VirtualizedScrollPane;
@@ -49,8 +48,6 @@ import com.nosaku.rattle.vo.ProxySettingsVo;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
-import javafx.event.Event;
-import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
@@ -62,9 +59,7 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
-import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
-import javafx.scene.control.MenuItem;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.SplitPane;
@@ -91,13 +86,13 @@ import javafx.util.Callback;
 
 public class App extends Application {
 	private double lastDividerPosition = 0.2;
-	private int tabIndex;
 	private Map<String, ApiModelVo> apiModelVoMap = new LinkedHashMap<>();
 	private TabPane centerTabs;
 	private TreeItem<ApiModelVo> rootTreeItem;
 	private TreeView<ApiModelVo> treeView;
 	private ProxySettingsVo proxySettings;
 	private ConsoleWindow consoleWindow;
+	private TabManager tabManager;
 
 	public App() {
 		this.consoleWindow = new ConsoleWindow();
@@ -124,6 +119,10 @@ public class App extends Application {
 		rootTreeItem.setExpanded(true);
 		centerTabs = new TabPane();
 		treeView = new TreeView<>(rootTreeItem);
+		
+		tabManager = new TabManager(centerTabs, rootTreeItem, treeView, apiModelVoMap,
+				tabId -> createApiTabContent(tabId), () -> saveApiModelVoMapAsJson());
+		
 		// treeView.setEditable(true);
 		treeView.setCellFactory(new Callback<TreeView<ApiModelVo>, TreeCell<ApiModelVo>>() {
 			@Override
@@ -164,7 +163,7 @@ public class App extends Application {
 		leftPanel.getChildren().addAll(addButton, treeView);
 		leftPanel.setMinWidth(150);
 		addButton.setOnAction(event -> {
-			addNewTab(centerTabs, rootTreeItem, treeView, null, true);
+			tabManager.addNewTab(null, true);
 		});
 
 		SplitPane splitPane = new SplitPane();
@@ -182,17 +181,17 @@ public class App extends Application {
 		MenuBar menuBar = new MenuBarBuilder(new MenuBarBuilder.MenuCallbacks() {
 			@Override
 			public void onNewRequest() {
-				addNewTab(centerTabs, rootTreeItem, treeView, null, true);
+				tabManager.addNewTab(null, true);
 			}
 
 			@Override
 			public void onSave() {
-				saveCurrentTab();
+				tabManager.saveCurrentTab();
 			}
 
 			@Override
 			public void onSaveAll() {
-				saveAllTabs();
+				tabManager.saveAllTabs();
 			}
 
 			@Override
@@ -222,14 +221,14 @@ public class App extends Application {
 				.add(Objects.requireNonNull(App.class.getResource("/json-light-theme.css")).toExternalForm());
 
 		scene.getAccelerators().put(new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN),
-				() -> saveCurrentTab());
+				() -> tabManager.saveCurrentTab());
 		scene.getAccelerators().put(
 				new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN),
-				() -> saveAllTabs());
-		scene.getAccelerators().put(new KeyCodeCombination(KeyCode.T, KeyCombination.CONTROL_DOWN),
-				() -> addNewTab(centerTabs, rootTreeItem, treeView, null, true));
+				() -> tabManager.saveAllTabs());
 		scene.getAccelerators().put(new KeyCodeCombination(KeyCode.W, KeyCombination.CONTROL_DOWN),
-				() -> closeCurrentTab());
+				() -> tabManager.addNewTab(null, true));
+		scene.getAccelerators().put(new KeyCodeCombination(KeyCode.W, KeyCombination.CONTROL_DOWN),
+				() -> tabManager.closeCurrentTab());
 		scene.getAccelerators().put(new KeyCodeCombination(KeyCode.X, KeyCombination.ALT_DOWN), () -> Platform.exit());
 
 		stage.setTitle("Rattle");
@@ -239,7 +238,7 @@ public class App extends Application {
 		stage.setScene(scene);
 
 		stage.setOnCloseRequest(event -> {
-			if (hasUnsavedTabs()) {
+			if (tabManager.hasUnsavedTabs()) {
 				Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "You have unsaved changes. Save before closing?",
 						ButtonType.YES, ButtonType.NO);
 				alert.setHeaderText("Unsaved Changes");
@@ -258,7 +257,7 @@ public class App extends Application {
 					}
 				});
 			}
-			saveAllTabs();
+			tabManager.saveAllTabs();
 			if (consoleWindow.isShowing()) {
 				consoleWindow.close();
 			}
@@ -290,11 +289,11 @@ public class App extends Application {
 
 			List<ApiModelVo> apiModelVoList = appVo.getApiList();
 			Tab currentTab = null;
-			for (ApiModelVo apiModelVo : apiModelVoList) {
-				apiModelVoMap.put(apiModelVo.getId(), apiModelVo);
-				if (apiModelVo.isTabOpen()) {
-					Tab tab = addNewTab(centerTabs, rootTreeItem, treeView, apiModelVo.getId(), true);
-					if (tab != null && apiModelVo.isTabOpen() && apiModelVo.isCurrentTab()) {
+		for (ApiModelVo apiModelVo : apiModelVoList) {
+			apiModelVoMap.put(apiModelVo.getId(), apiModelVo);
+			if (apiModelVo.isTabOpen()) {
+				Tab tab = tabManager.addNewTab(apiModelVo.getId(), true);
+				if (tab != null && apiModelVo.isTabOpen() && apiModelVo.isCurrentTab()) {
 						currentTab = tab;
 					}
 				} else {
@@ -305,94 +304,13 @@ public class App extends Application {
 					lastTabIndex = apiModelVo.getTabNbr();
 				}
 			}
-			this.tabIndex = lastTabIndex;
+			tabManager.setTabIndex(lastTabIndex);
 			if (currentTab != null) {
 				centerTabs.getSelectionModel().select(currentTab);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-	}
-
-	private Tab addNewTab(TabPane tabPane, TreeItem<ApiModelVo> parentTreeItem, TreeView<ApiModelVo> treeView,
-			String tabId, boolean isAddTreeItem) {
-		Tab tab = new Tab();
-		ApiModelVo apiModelVo = null;
-		if (tabId == null) {
-			String title = "Request " + (++tabIndex);
-			apiModelVo = new ApiModelVo();
-			apiModelVo.setId(UUID.randomUUID().toString());
-			apiModelVo.setName(title);
-			apiModelVo.setTabNbr(tabIndex);
-			apiModelVo.setNewTab(true);
-			apiModelVoMap.put(apiModelVo.getId(), apiModelVo);
-			tab.setText(truncateTabTitle(title) + " *");
-			tab.setId(apiModelVo.getId());
-			tab.setClosable(true);
-		} else {
-			apiModelVo = apiModelVoMap.get(tabId);
-			tab.setText(truncateTabTitle(apiModelVo.getName()));
-			tab.setId(apiModelVo.getId());
-			tab.setClosable(true);
-			if (isAddTreeItem) {
-				// TODO url etc.
-			}
-		}
-		tabPane.getTabs().add(tab);
-
-		VBox contentContainer = createApiTabContent(tab.getId());
-		contentContainer.setFocusTraversable(true);
-		tab.setContent(contentContainer);
-
-		if (tabId == null || isAddTreeItem) {
-			TreeItem<ApiModelVo> newTreeItem = new TreeItem<>(apiModelVo);
-			parentTreeItem.getChildren().add(newTreeItem);
-			tab.selectedProperty().addListener((observable, oldValue, newValue) -> {
-				if (newValue) {
-					treeView.getSelectionModel().select(newTreeItem);
-				}
-			});
-		}
-		tab.setOnCloseRequest(event -> {
-			ApiModelVo closeTabApiModelVo = apiModelVoMap.get(tab.getId());
-			boolean isSave = (closeTabApiModelVo != null && closeTabApiModelVo.isModified())
-					|| tab.getText().endsWith(" *");
-			if (isSave) {
-				Alert alert = new Alert(Alert.AlertType.CONFIRMATION,
-						"This tab has unsaved changes. Save before closing?", ButtonType.YES, ButtonType.NO,
-						ButtonType.CANCEL);
-				alert.setHeaderText("Unsaved changes");
-				if (tabPane.getScene() != null && tabPane.getScene().getWindow() != null) {
-					alert.initOwner(tabPane.getScene().getWindow());
-				}
-				alert.showAndWait().ifPresent(response -> {
-					if (response == ButtonType.YES) {
-						closeTabApiModelVo.setTabOpen(false);
-						saveTab(tab, true);
-					} else if (response == ButtonType.NO) {
-						if (tab.getText().endsWith(" *")) {
-							tab.setText(tab.getText().substring(0, tab.getText().lastIndexOf(" *")));
-						}
-						if (closeTabApiModelVo != null) {
-							closeTabApiModelVo.setModified(false);
-						}
-					} else {
-						event.consume();
-					}
-				});
-			} else {
-				closeTabApiModelVo.setTabOpen(false);
-				saveTab(tab, true);
-			}
-		});
-
-		tabPane.getSelectionModel().select(tab);
-		Platform.runLater(() -> {
-			if (tab.getContent() != null) {
-				tab.getContent().requestFocus();
-			}
-		});
-		return tab;
 	}
 
 	private VBox createApiTabContent(String tabId) {
@@ -427,13 +345,13 @@ public class App extends Application {
 		Tab finalCurrentTab = currentTab;
 		urlTextField.textProperty().addListener((obs, oldVal, newVal) -> {
 			if (finalCurrentTab != null && !newVal.equals(oldVal)) {
-				markTabAsModified(finalCurrentTab);
+				tabManager.markTabAsModified(finalCurrentTab);
 			}
 		});
 
 		methodComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
 			if (finalCurrentTab != null && !newVal.equals(oldVal)) {
-				markTabAsModified(finalCurrentTab);
+				tabManager.markTabAsModified(finalCurrentTab);
 			}
 		});
 
@@ -486,7 +404,7 @@ public class App extends Application {
 		TextArea bodyTextArea = new TextArea(apiModelVo.getBody());
 		bodyTextArea.textProperty().addListener((obs, oldVal, newVal) -> {
 			if (finalCurrentTab != null && !newVal.equals(oldVal)) {
-				markTabAsModified(finalCurrentTab);
+				tabManager.markTabAsModified(finalCurrentTab);
 			}
 		});
 		topTabs.getTabs().add(new Tab("Body", bodyTextArea));
@@ -573,19 +491,19 @@ public class App extends Application {
 
 		keyField.textProperty().addListener((obs, oldVal, newVal) -> {
 			if (!newVal.equals(oldVal)) {
-				markParentTabAsModified(parentContainer);
+				tabManager.markParentTabAsModified(parentContainer);
 			}
 		});
 
 		valueField.textProperty().addListener((obs, oldVal, newVal) -> {
 			if (!newVal.equals(oldVal)) {
-				markParentTabAsModified(parentContainer);
+				tabManager.markParentTabAsModified(parentContainer);
 			}
 		});
 
 		enableCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
 			if (!newVal.equals(oldVal)) {
-				markParentTabAsModified(parentContainer);
+				tabManager.markParentTabAsModified(parentContainer);
 			}
 		});
 
@@ -602,10 +520,10 @@ public class App extends Application {
 		for (Tab tab : centerTabs.getTabs()) {
 			if (tab.getId().equals(existingModel.getId())) {
 				if (tab.getText().lastIndexOf(" *") != -1) {
-					tab.setText(truncateTabTitle(newName) + " *");
+					tab.setText(tabManager.truncateTabTitle(newName) + " *");
 				} else {
-					tab.setText(truncateTabTitle(newName));
-					saveTab(tab);
+					tab.setText(tabManager.truncateTabTitle(newName));
+					tabManager.saveTab(tab);
 				}
 				break;
 			}
@@ -639,180 +557,6 @@ public class App extends Application {
 
 		apiModelVoMap.remove(value.getId());
 		saveApiModelVoMapAsJson();
-	}
-
-	private String truncateTabTitle(String title) {
-		if (title == null) {
-			return "";
-		}
-		String cleanTitle = title.endsWith(" *") ? title.substring(0, title.length() - 2) : title;
-		if (cleanTitle.length() > 15) {
-			return cleanTitle.substring(0, 12) + "...";
-		}
-		return cleanTitle;
-	}
-
-	private void markTabAsModified(Tab tab) {
-		String currentText = tab.getText();
-		if (!currentText.endsWith(" *")) {
-			tab.setText(currentText + " *");
-			ApiModelVo apiModelVo = apiModelVoMap.get(tab.getId());
-			if (apiModelVo != null) {
-				apiModelVo.setModified(true);
-			}
-		}
-	}
-
-	private void markParentTabAsModified(VBox container) {
-		for (Tab tab : centerTabs.getTabs()) {
-			if (tab.getContent() == container || isDescendantOf(container, tab.getContent())) {
-				markTabAsModified(tab);
-				break;
-			}
-		}
-	}
-
-	private boolean isDescendantOf(Node child, Node parent) {
-		Node current = child.getParent();
-		while (current != null) {
-			if (current == parent) {
-				return true;
-			}
-			current = current.getParent();
-		}
-		return false;
-	}
-
-	private void saveCurrentTab() {
-		Tab selectedTab = centerTabs.getSelectionModel().getSelectedItem();
-		if (selectedTab != null) {
-			saveTab(selectedTab);
-		}
-	}
-
-	private void saveAllTabs() {
-		for (Tab tab : new ArrayList<>(centerTabs.getTabs())) {
-			saveTab(tab, false);
-		}
-		saveApiModelVoMapAsJson();
-	}
-
-	private boolean hasUnsavedTabs() {
-		for (Tab tab : centerTabs.getTabs()) {
-			if (tab.getText().endsWith(" *")) {
-				return true;
-			}
-			ApiModelVo apiModelVo = apiModelVoMap.get(tab.getId());
-			if (apiModelVo != null && apiModelVo.isModified()) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	private void closeCurrentTab() {
-		Tab selectedTab = centerTabs.getSelectionModel().getSelectedItem();
-		if (selectedTab == null) {
-			return;
-		}
-
-		EventHandler<javafx.event.Event> handler = selectedTab.getOnCloseRequest();
-		if (handler != null) {
-			Event closeEvent = new Event(Event.ANY);
-			handler.handle(closeEvent);
-			if (closeEvent.isConsumed()) {
-				return;
-			}
-		}
-
-		TabPane tabPane = selectedTab.getTabPane();
-		if (tabPane != null) {
-			tabPane.getTabs().remove(selectedTab);
-		}
-	}
-
-	private void saveTab(Tab tab) {
-		this.saveTab(tab, true);
-	}
-
-	private void saveTab(Tab tab, boolean isWriteToFile) {
-		if (tab != null) {
-			String tabText = tab.getText();
-			if (tabText.endsWith(" *")) {
-				tabText = tabText.substring(0, tabText.length() - 2);
-				tab.setText(tabText);
-			}
-			ApiModelVo apiModelVo = apiModelVoMap.get(tab.getId());
-			if (apiModelVo != null) {
-				apiModelVo.setCurrentTab(tab.isSelected());
-				VBox mainLayout = (VBox) tab.getContent();
-				if (mainLayout != null && !mainLayout.getChildren().isEmpty()) {
-					HBox requestBar = (HBox) mainLayout.getChildren().get(0);
-					if (requestBar != null && requestBar.getChildren().size() >= 2) {
-						ComboBox<String> methodComboBox = (ComboBox<String>) requestBar.getChildren().get(0);
-						apiModelVo.setMethod(methodComboBox.getValue());
-						TextField urlTextField = (TextField) requestBar.getChildren().get(1);
-						apiModelVo.setUrl(urlTextField.getText());
-					}
-
-					if (mainLayout.getChildren().size() > 1) {
-						SplitPane mainContentSplit = (SplitPane) mainLayout.getChildren().get(1);
-						if (mainContentSplit != null && mainContentSplit.getItems().size() > 0) {
-							TabPane topTabs = (TabPane) mainContentSplit.getItems().get(0);
-
-							Tab paramsTab = topTabs.getTabs().get(0);
-							ScrollPane paramsScrollPane = (ScrollPane) paramsTab.getContent();
-							VBox paramsContainer = (VBox) paramsScrollPane.getContent();
-							Map<String, String> params = extractParamsFromContainer(paramsContainer);
-							apiModelVo.setParams(params);
-
-							Tab headersTab = topTabs.getTabs().get(1);
-							ScrollPane headersScrollPane = (ScrollPane) headersTab.getContent();
-							VBox headersContainer = (VBox) headersScrollPane.getContent();
-							Map<String, String> headers = extractParamsFromContainer(headersContainer);
-							apiModelVo.setHeaders(headers);
-
-							Tab bodyTab = topTabs.getTabs().get(2);
-							TextArea bodyTextArea = (TextArea) bodyTab.getContent();
-							apiModelVo.setBody(bodyTextArea.getText());
-						}
-					}
-				}
-				apiModelVo.setModified(false);
-			}
-			if (isWriteToFile) {
-				saveApiModelVoMapAsJson();
-			}
-		}
-	}
-
-	private Map<String, String> extractParamsFromContainer(VBox container) {
-		Map<String, String> result = new LinkedHashMap<>();
-		for (Node node : container.getChildren()) {
-			if (node instanceof HBox) {
-				HBox row = (HBox) node;
-				String key = null;
-				String value = null;
-				boolean isSelected = false;
-				for (Node fieldNode : row.getChildren()) {
-					if (fieldNode instanceof TextField) {
-						TextField textField = (TextField) fieldNode;
-						if ("key".equals(textField.getId())) {
-							key = textField.getText();
-						} else if ("value".equals(textField.getId())) {
-							value = textField.getText();
-						}
-					} else if (fieldNode instanceof CheckBox) {
-						CheckBox checkBox = (CheckBox) fieldNode;
-						isSelected = checkBox.isSelected();
-					}
-				}
-				if (isSelected && StringUtil.nonEmptyStr(key)) {
-					result.put(key, value != null ? value : "");
-				}
-			}
-		}
-		return result;
 	}
 
 	private void invokeApi(String tabId, String method, String url, Map<String, String> params,
@@ -962,16 +706,6 @@ public class App extends Application {
 	}
 
 	public void openTab(String id) {
-		boolean isOpenTabFound = false;
-		for (Tab tab : centerTabs.getTabs()) {
-			if (tab.getId().equals(id)) {
-				centerTabs.getSelectionModel().select(tab);
-				isOpenTabFound = true;
-				break;
-			}
-		}
-		if (!isOpenTabFound) {
-			addNewTab(centerTabs, rootTreeItem, treeView, id, false);
-		}
+		tabManager.openTab(id);
 	}
 }
