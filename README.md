@@ -17,3 +17,5 @@ Use below VM arguments when running App.java:
 Use below maven goals to package executable JARs:
 
 clean package
+
+To run the native Windows executeble you need "Microsoft Visual C++ Redistributable".
