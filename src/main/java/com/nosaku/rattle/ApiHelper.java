@@ -1,3 +1,24 @@
+/*
+ * Copyright (c) 2025 nosaku
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.nosaku.rattle;
 
 import java.io.StringWriter;
@@ -9,10 +30,11 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.security.cert.X509Certificate;
+
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import java.security.cert.X509Certificate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
@@ -122,35 +144,14 @@ public class ApiHelper {
 		try {
 			HttpRequest httpRequest = null;
 			if (CommonConstants.HTTP_METHOD_GET.equals(apiModelVo.getMethod())) {
-				String url = apiModelVo.getUrl();
-				if (apiModelVo.getParams() != null && !apiModelVo.getParams().isEmpty()) {
-					StringBuilder urlBuilder = new StringBuilder(url);
-					urlBuilder.append(url.contains("?") ? "&" : "?");
-					apiModelVo.getParams().forEach((key, value) -> 
-						urlBuilder.append(key).append("=").append(value).append("&")
-					);
-					url = urlBuilder.toString().replaceAll("&$", "");
-				}
 				HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-						.uri(URI.create(url));
-				
-				if (apiModelVo.getHeaders() != null && !apiModelVo.getHeaders().isEmpty()) {
-					apiModelVo.getHeaders().forEach((key, value) -> 
-						requestBuilder.header(key, value)
-					);
-				}
-				
+						.uri(URI.create(getUrlWithParams(apiModelVo)));
+				setHeaders(requestBuilder, apiModelVo);
 				httpRequest = requestBuilder.GET().build();
 			} else if (CommonConstants.HTTP_METHOD_POST.equals(apiModelVo.getMethod())) {
 				HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-						.uri(URI.create(apiModelVo.getUrl()));
-				
-				if (apiModelVo.getHeaders() != null && !apiModelVo.getHeaders().isEmpty()) {
-					apiModelVo.getHeaders().forEach((key, value) -> 
-						requestBuilder.header(key, value)
-					);
-				}
-				
+						.uri(URI.create(getUrlWithParams(apiModelVo)));
+				setHeaders(requestBuilder, apiModelVo);
 				String body = apiModelVo.getBody();
 				if (body != null && !body.trim().isEmpty()) {
 					try {
@@ -170,11 +171,7 @@ public class ApiHelper {
 								.build();
 					}
 				} else if (apiModelVo.getParams() != null && !apiModelVo.getParams().isEmpty()) {
-					StringBuilder paramBuilder = new StringBuilder();
-					apiModelVo.getParams().forEach((key, value) -> {
-						paramBuilder.append(key).append("=").append(value).append("&");
-					});
-					String paramBody = paramBuilder.toString().replaceAll("&$", "");
+					String paramBody = getParamBody(apiModelVo);
 					requestBuilder.header("Content-Type", "application/x-www-form-urlencoded");
 					httpRequest = requestBuilder
 							.POST(HttpRequest.BodyPublishers.ofString(paramBody))
@@ -182,6 +179,77 @@ public class ApiHelper {
 				} else {
 					httpRequest = requestBuilder
 							.POST(HttpRequest.BodyPublishers.noBody())
+							.build();
+				}
+			} else if (CommonConstants.HTTP_METHOD_PUT.equals(apiModelVo.getMethod())) {
+				HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+						.uri(URI.create(getUrlWithParams(apiModelVo)));
+				setHeaders(requestBuilder, apiModelVo);
+				String body = apiModelVo.getBody();
+				if (body != null && !body.trim().isEmpty()) {
+					try {
+						ObjectMapper mapper = new ObjectMapper();
+						Object jsonObject = mapper.readValue(body, Object.class);
+						String validJson = mapper.writeValueAsString(jsonObject);
+						requestBuilder.header("Content-Type", "application/json");
+						httpRequest = requestBuilder
+								.PUT(HttpRequest.BodyPublishers.ofString(validJson))
+								.build();
+					} catch (Exception e) {
+						// If JSON parsing fails, send as-is
+						System.err.println("Warning: Invalid JSON format, sending as-is: " + e.getMessage());
+						requestBuilder.header("Content-Type", "application/json");
+						httpRequest = requestBuilder
+								.PUT(HttpRequest.BodyPublishers.ofString(body))
+								.build();
+					}
+				} else if (apiModelVo.getParams() != null && !apiModelVo.getParams().isEmpty()) {
+					String paramBody = getParamBody(apiModelVo);
+					requestBuilder.header("Content-Type", "application/x-www-form-urlencoded");
+					httpRequest = requestBuilder
+							.PUT(HttpRequest.BodyPublishers.ofString(paramBody))
+							.build();
+				} else {
+					httpRequest = requestBuilder
+							.PUT(HttpRequest.BodyPublishers.noBody())
+							.build();
+				}
+			} else if (CommonConstants.HTTP_METHOD_DELETE.equals(apiModelVo.getMethod())) {
+				HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+						.uri(URI.create(getUrlWithParams(apiModelVo)));
+				setHeaders(requestBuilder, apiModelVo);
+				httpRequest = requestBuilder.DELETE().build();
+			} else if (CommonConstants.HTTP_METHOD_PATCH.equals(apiModelVo.getMethod())) {
+				HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+						.uri(URI.create(getUrlWithParams(apiModelVo)));
+				setHeaders(requestBuilder, apiModelVo);
+				String body = apiModelVo.getBody();
+				if (body != null && !body.trim().isEmpty()) {
+					try {
+						ObjectMapper mapper = new ObjectMapper();
+						Object jsonObject = mapper.readValue(body, Object.class);
+						String validJson = mapper.writeValueAsString(jsonObject);
+						requestBuilder.header("Content-Type", "application/json");
+						httpRequest = requestBuilder
+								.method("PATCH", HttpRequest.BodyPublishers.ofString(validJson))
+								.build();
+					} catch (Exception e) {
+						// If JSON parsing fails, send as-is
+						System.err.println("Warning: Invalid JSON format, sending as-is: " + e.getMessage());
+						requestBuilder.header("Content-Type", "application/json");
+						httpRequest = requestBuilder
+								.method("PATCH", HttpRequest.BodyPublishers.ofString(body))
+								.build();
+					}
+				} else if (apiModelVo.getParams() != null && !apiModelVo.getParams().isEmpty()) {
+					String paramBody = getParamBody(apiModelVo);
+					requestBuilder.header("Content-Type", "application/x-www-form-urlencoded");
+					httpRequest = requestBuilder
+							.method("PATCH", HttpRequest.BodyPublishers.ofString(paramBody))
+							.build();
+				} else {
+					httpRequest = requestBuilder
+							.method("PATCH", HttpRequest.BodyPublishers.noBody())
 							.build();
 				}
 			}
@@ -197,7 +265,9 @@ public class ApiHelper {
 				if (apiModelVo.getBody() != null && !apiModelVo.getBody().trim().isEmpty()) {
 					consoleLog.append("\n--- Request Body ---\n");
 					consoleLog.append(apiModelVo.getBody()).append("\n");
-				} else if (CommonConstants.HTTP_METHOD_POST.equals(apiModelVo.getMethod()) && 
+				} else if ((CommonConstants.HTTP_METHOD_POST.equals(apiModelVo.getMethod()) ||
+						   CommonConstants.HTTP_METHOD_PUT.equals(apiModelVo.getMethod()) ||
+						   CommonConstants.HTTP_METHOD_PATCH.equals(apiModelVo.getMethod())) && 
 						   apiModelVo.getParams() != null && !apiModelVo.getParams().isEmpty()) {
 					consoleLog.append("\n--- Request Body (URL-encoded) ---\n");
 					apiModelVo.getParams().forEach((key, value) -> 
@@ -240,5 +310,35 @@ public class ApiHelper {
 			apiModelVo.setConsoleLog(consoleLog.toString());
 			throw e;
 		}
+	}
+
+	private String getUrlWithParams(ApiModelVo apiModelVo) {
+		String url = apiModelVo.getUrl();
+		if (apiModelVo.getParams() != null && !apiModelVo.getParams().isEmpty()) {
+			StringBuilder urlBuilder = new StringBuilder(url);
+			urlBuilder.append(url.contains("?") ? "&" : "?");
+			apiModelVo.getParams().forEach((key, value) -> 
+				urlBuilder.append(key).append("=").append(value).append("&")
+			);
+			url = urlBuilder.toString().replaceAll("&$", "");
+		}
+		return url;
+	}
+
+	private void setHeaders(HttpRequest.Builder requestBuilder, ApiModelVo apiModelVo) {
+		if (apiModelVo.getHeaders() != null && !apiModelVo.getHeaders().isEmpty()) {
+			apiModelVo.getHeaders().forEach((key, value) -> 
+				requestBuilder.header(key, value)
+			);
+		}		
+	}
+
+	private String getParamBody(ApiModelVo apiModelVo) {
+		StringBuilder paramBuilder = new StringBuilder();
+		apiModelVo.getParams().forEach((key, value) -> {
+			paramBuilder.append(key).append("=").append(value).append("&");
+		});
+		String paramBody = paramBuilder.toString().replaceAll("&$", "");
+		return paramBody;
 	}
 }
