@@ -93,11 +93,9 @@ public class App extends Application {
 	private TreeItem<ApiModelVo> authConfigTreeItem;
 	private TreeView<ApiModelVo> treeView;
 	private ProxySettingsVo proxySettings;
-	private ConsoleWindow consoleWindow;
 	private TabManager tabManager;
 
 	public App() {
-		this.consoleWindow = new ConsoleWindow();
 	}
 
 	public static void main(String[] args) {
@@ -211,11 +209,6 @@ public class App extends Application {
 			}
 
 			@Override
-			public void onViewConsole() {
-				consoleWindow.show(centerTabs.getScene().getWindow());
-			}
-
-			@Override
 			public void onProxySettings() {
 				openProxySettingsDialog();
 			}
@@ -276,9 +269,6 @@ public class App extends Application {
 				});
 			}
 			tabManager.saveAllTabs();
-			if (consoleWindow.isShowing()) {
-				consoleWindow.close();
-			}
 		});
 
 		initApp();
@@ -470,7 +460,10 @@ public class App extends Application {
 		topTabs.getTabs().add(new Tab("Body", bodyTextArea));
 		topTabs.getTabs().forEach(tab -> tab.setClosable(false));
 
-		// Bottom Content: Response area
+		// Bottom Content: Response and Console tabs
+		TabPane bottomTabs = new TabPane();
+		
+		// Response tab
 		VBox responseContainer = new VBox(5);
 		responseContainer.setPadding(new Insets(10));
 		Label responseLabel = new Label("Status Code");
@@ -491,10 +484,32 @@ public class App extends Application {
 		VBox.setVgrow(responseStackPane, Priority.ALWAYS);
 		
 		responseContainer.getChildren().addAll(responseLabelRow, responseStackPane);
+		Tab responseTab = new Tab("Response", responseContainer);
+		responseTab.setClosable(false);
+		
+		// Console tab
+		VBox consoleContainer = new VBox(5);
+		consoleContainer.setPadding(new Insets(10));
+		TextArea consoleArea = new TextArea();
+		consoleArea.setEditable(false);
+		consoleArea.setWrapText(false);
+		consoleArea.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 12px;");
+		VBox.setVgrow(consoleArea, Priority.ALWAYS);
+		
+		Button clearConsoleButton = new Button("Clear Console");
+		clearConsoleButton.setOnAction(e -> consoleArea.clear());
+		HBox consoleButtonBar = new HBox(10, clearConsoleButton);
+		consoleButtonBar.setPadding(new Insets(0, 0, 5, 0));
+		
+		consoleContainer.getChildren().addAll(consoleButtonBar, consoleArea);
+		Tab consoleTab = new Tab("Console", consoleContainer);
+		consoleTab.setClosable(false);
+		
+		bottomTabs.getTabs().addAll(responseTab, consoleTab);
 
 		SplitPane mainContentSplit = new SplitPane();
 		mainContentSplit.setOrientation(Orientation.VERTICAL);
-		mainContentSplit.getItems().addAll(topTabs, responseContainer);
+		mainContentSplit.getItems().addAll(topTabs, bottomTabs);
 		mainContentSplit.setDividerPositions(0.4);
 
 		VBox mainLayout = new VBox();
@@ -503,7 +518,7 @@ public class App extends Application {
 
 		Runnable sendAction = () -> {
 			invokeApi(tabId, methodComboBox.getValue(), urlTextField.getText(), getParams(paramsContainer),
-					getParams(headersContainer), bodyTextArea.getText(), responseArea, responseLabel, loadingSpinner);
+					getParams(headersContainer), bodyTextArea.getText(), responseArea, responseLabel, loadingSpinner, consoleArea);
 		};
 
 		sendButton.setOnAction(e -> sendAction.run());
@@ -625,7 +640,7 @@ public class App extends Application {
 
 	private void invokeApi(String tabId, String method, String url, Map<String, String> params,
 			Map<String, String> headers, String body, CodeArea responseArea, Label responseLabel,
-			ProgressIndicator loadingSpinner) {
+			ProgressIndicator loadingSpinner, TextArea consoleArea) {
 		ApiModelVo currentApiModel = apiModelVoMap.get(tabId);
 		
 		ApiModelVo apiModelVo = new ApiModelVo();
@@ -683,7 +698,11 @@ public class App extends Application {
 				}
 
 				if (apiModelVo.getConsoleLog() != null) {
-					consoleWindow.log(apiModelVo.getConsoleLog());
+					Platform.runLater(() -> {
+						consoleArea.appendText(apiModelVo.getConsoleLog() + "\n");
+						consoleArea.positionCaret(0);
+						consoleArea.setScrollTop(0);
+					});
 				}
 			}
 
@@ -695,14 +714,18 @@ public class App extends Application {
 				if (apiModelVo.getResponse() != null && !apiModelVo.getResponse().isEmpty()) {
 					responseArea.appendText(apiModelVo.getResponse());
 					if (apiModelVo.getConsoleLog() != null) {
-						consoleWindow.log(apiModelVo.getConsoleLog());
+						Platform.runLater(() -> {
+							consoleArea.appendText(apiModelVo.getConsoleLog() + "\n");
+						});
 					}
 				} else {
 					Throwable exception = getException();
 					responseArea.appendText("Error: " + exception.getClass().getName() + "\n" + "Message: "
 							+ exception.getMessage() + "\n\n" + "Stack Trace:\n" + CommonUtil.getStackTraceAsString(exception));
 					if (apiModelVo.getConsoleLog() != null) {
-						consoleWindow.log(apiModelVo.getConsoleLog());
+						Platform.runLater(() -> {
+							consoleArea.appendText(apiModelVo.getConsoleLog() + "\n");
+						});
 					}
 				}
 				responseArea.scrollYToPixel(0);

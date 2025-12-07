@@ -48,7 +48,6 @@ public class MenuBarBuilder {
 	public MenuBar build() {
 		MenuBar menuBar = new MenuBar();
 		menuBar.getMenus().add(createFileMenu());
-		menuBar.getMenus().add(createViewMenu());
 		menuBar.getMenus().add(createSettingsMenu());
 		menuBar.getMenus().add(createHelpMenu());
 		return menuBar;
@@ -83,20 +82,6 @@ public class MenuBarBuilder {
 		return fileMenu;
 	}
 	
-	private Menu createViewMenu() {
-		Menu viewMenu = new Menu("_View");
-		viewMenu.setMnemonicParsing(true);
-		
-		MenuItem viewConsoleMenuItem = new MenuItem("View _Console");
-		viewConsoleMenuItem.setMnemonicParsing(true);
-		viewConsoleMenuItem.setOnAction(e -> callbacks.onViewConsole());
-		viewConsoleMenuItem.setAccelerator(
-				new KeyCodeCombination(KeyCode.C, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
-		
-		viewMenu.getItems().add(viewConsoleMenuItem);
-		return viewMenu;
-	}
-	
 	private Menu createSettingsMenu() {
 		Menu settingsMenu = new Menu("_Settings");
 		settingsMenu.setMnemonicParsing(true);
@@ -128,7 +113,6 @@ public class MenuBarBuilder {
 		void onNewRequest();
 		void onSave();
 		void onSaveAll();
-		void onViewConsole();
 		void onProxySettings();
 		void onAbout();
 	}
