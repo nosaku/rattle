@@ -89,6 +89,10 @@ public class OAuthTokenStore {
 		private long issued_time;
 		private long expirationTime;
 
+		// No-args constructor for Gson
+		public Token() {
+		}
+
 		public String getAccess_token() {
 			return access_token;
 		}
