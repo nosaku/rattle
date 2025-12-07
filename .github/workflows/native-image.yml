@@ -50,6 +50,7 @@ jobs:
         shell: bash
         run: |
           mvn -Pnative package
+          mvn -Pnative-windows package
 
       - name: Archive Release
         uses: thedoctor0/zip-release@0.7.5

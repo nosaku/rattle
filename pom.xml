@@ -371,6 +371,49 @@
 	</build>
 
    <profiles>
+        <!-- Native build profile for Windows -->
+        <profile>
+            <id>native-windows</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>0.10.5</version>
+                        <extensions>true</extensions>
+                        <executions>
+                            <execution>
+                                <id>build-native</id>
+                                <goals>
+                                    <goal>compile-no-fork</goal>
+                                </goals>
+                                <phase>package</phase>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <imageName>rattle</imageName>
+                            <mainClass>com.nosaku.rattle.Launcher</mainClass>
+                            <buildArgs>
+                                <buildArg>--verbose</buildArg>
+                                <buildArg>--no-fallback</buildArg>
+                                <buildArg>-march=compatibility</buildArg>
+                                <buildArg>-H:IncludeResources=.*\.css$</buildArg>
+                                <buildArg>-H:IncludeResources=.*\.png$</buildArg>
+                                <buildArg>-H:ReflectionConfigurationFiles=${project.basedir}/src/main/resources/META-INF/native-image/reflect-config.json</buildArg>
+                                <buildArg>-H:+ReportExceptionStackTraces</buildArg>
+                                <buildArg>--add-exports</buildArg>
+                                <buildArg>javafx.base/com.sun.javafx.event=ALL-UNNAMED</buildArg>
+                                <buildArg>-H:NativeLinkerOption=/SUBSYSTEM:WINDOWS</buildArg>
+                                <buildArg>-H:NativeLinkerOption=/ENTRY:mainCRTStartup</buildArg>
+                            </buildArgs>
+                            <outputDirectory>${project.build.directory}/native</outputDirectory>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        
+        <!-- Native build profile for Linux/Mac -->
         <profile>
             <id>native</id>
             <build>
@@ -402,8 +445,6 @@
                                 <buildArg>-H:+ReportExceptionStackTraces</buildArg>
                                 <buildArg>--add-exports</buildArg>
                                 <buildArg>javafx.base/com.sun.javafx.event=ALL-UNNAMED</buildArg>
-								<buildArg>-H:NativeLinkerOption=/SUBSYSTEM:WINDOWS</buildArg>
-                                <buildArg>-H:NativeLinkerOption=/ENTRY:mainCRTStartup</buildArg>
                             </buildArgs>
                             <outputDirectory>${project.build.directory}/native</outputDirectory>
                         </configuration>
