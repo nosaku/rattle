@@ -45,4 +45,8 @@ public class CommonConstants {
 			"Access-Control-Allow-Credentials", "X-Frame-Options", "X-Content-Type-Options",
 			"Strict-Transport-Security", "Content-Security-Policy", "X-XSS-Protection"
 	);
+	public static final String AUTHENTICATION_TYPE_OAUTH2 = "OAuth2";
+	public static final String AUTHENTICATION_TYPE_BASIC_AUTH = "Basic Auth";
+	public static final String AUTHENTICATION_TYPE_API_KEY = "API Key";
+	public static final Collection<String> AUTHENTICATION_TYPES = Arrays.asList(AUTHENTICATION_TYPE_OAUTH2, AUTHENTICATION_TYPE_BASIC_AUTH, AUTHENTICATION_TYPE_API_KEY);
 }
