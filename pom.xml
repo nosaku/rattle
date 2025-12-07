@@ -402,6 +402,8 @@
                                 <buildArg>-H:+ReportExceptionStackTraces</buildArg>
                                 <buildArg>--add-exports</buildArg>
                                 <buildArg>javafx.base/com.sun.javafx.event=ALL-UNNAMED</buildArg>
+								<buildArg>-H:NativeLinkerOption=/SUBSYSTEM:WINDOWS</buildArg>
+                                <buildArg>-H:NativeLinkerOption=/ENTRY:mainCRTStartup</buildArg>
                             </buildArgs>
                             <outputDirectory>${project.build.directory}/native</outputDirectory>
                         </configuration>
