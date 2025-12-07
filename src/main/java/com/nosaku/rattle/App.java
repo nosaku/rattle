@@ -411,7 +411,7 @@ public class App extends Application {
 				paramsContainer.getChildren().add(newRow);
 			}
 		} else {
-			// For auth configs, prefill with OIDC params
+			// For auth configs, prefill with OAuth2 params
 			if (apiModelVo.isAuthConfig()) {
 				paramsContainer.getChildren().add(createParamRow(paramsContainer, false, "grant_type", "client_credentials"));
 				paramsContainer.getChildren().add(createParamRow(paramsContainer, false, "client_id", ""));
@@ -819,28 +819,10 @@ public class App extends Application {
 	
 	public void clearAuthToken(String authConfigId) {
 		OAuthTokenStore.getInstance().clearToken(authConfigId);
-		
-		Alert alert = new Alert(Alert.AlertType.INFORMATION);
-		alert.setTitle("Token Cleared");
-		alert.setHeaderText(null);
-		alert.setContentText("Authentication token has been cleared from cache.");
-		if (centerTabs.getScene() != null && centerTabs.getScene().getWindow() != null) {
-			alert.initOwner(centerTabs.getScene().getWindow());
-		}
-		alert.showAndWait();
 	}
 	
 	public void clearAllAuthTokens() {
 		OAuthTokenStore.getInstance().clearAllTokens();
-		
-		Alert alert = new Alert(Alert.AlertType.INFORMATION);
-		alert.setTitle("Tokens Cleared");
-		alert.setHeaderText(null);
-		alert.setContentText("All authentication tokens have been cleared from cache.");
-		if (centerTabs.getScene() != null && centerTabs.getScene().getWindow() != null) {
-			alert.initOwner(centerTabs.getScene().getWindow());
-		}
-		alert.showAndWait();
 	}
 	
 	private VBox createAuthSelectionContent(ApiModelVo apiModelVo, Tab currentTab) {
@@ -905,7 +887,7 @@ public class App extends Application {
 		// Auth Type Dropdown
 		Label authTypeLabel = new Label("Authentication Type:");
 		ComboBox<String> authTypeComboBox = new ComboBox<>(
-			FXCollections.observableArrayList("OIDC", "OAuth2", "Basic Auth", "API Key")
+			FXCollections.observableArrayList(CommonConstants.AUTHENTICATION_TYPES)
 		);
 		authTypeComboBox.setPromptText("Select authentication type");
 		authTypeComboBox.setPrefWidth(300);
@@ -918,12 +900,9 @@ public class App extends Application {
 		VBox fieldsContainer = new VBox(10);
 		fieldsContainer.setPadding(new Insets(10, 0, 0, 0));
 		
-		// OIDC Fields
-		VBox oidcFields = createOidcFields(apiModelVo, currentTab);
-		
-		// Show OIDC fields if OIDC is selected
-		if ("OIDC".equals(authTypeComboBox.getValue())) {
-			fieldsContainer.getChildren().add(oidcFields);
+		VBox oAuth2Fields = createOAuth2Fields(apiModelVo, currentTab);
+		if (CommonConstants.AUTHENTICATION_TYPE_OAUTH2.equals(authTypeComboBox.getValue())) {
+			fieldsContainer.getChildren().add(oAuth2Fields);
 		}
 		
 		// Listen for auth type changes
@@ -935,10 +914,9 @@ public class App extends Application {
 			apiModelVo.setAuthType(newVal);
 			fieldsContainer.getChildren().clear();
 			
-			if ("OIDC".equals(newVal)) {
-				fieldsContainer.getChildren().add(oidcFields);
-				// Prefill fields when OIDC is selected
-				prefillOidcDefaults(apiModelVo);
+			if (CommonConstants.AUTHENTICATION_TYPE_OAUTH2.equals(newVal)) {
+				fieldsContainer.getChildren().add(oAuth2Fields);
+				prefillOAuth2Defaults(apiModelVo);
 			} else {
 				// Placeholder for other auth types
 				Label comingSoonLabel = new Label("Configuration for " + newVal + " coming soon...");
@@ -952,23 +930,23 @@ public class App extends Application {
 		return authBox;
 	}
 	
-	private void prefillOidcDefaults(ApiModelVo apiModelVo) {
+	private void prefillOAuth2Defaults(ApiModelVo apiModelVo) {
 		// Params will be prefilled when the tab is created
 		// This method is for any additional setup when auth type changes
 	}
 	
-	private VBox createOidcFields(ApiModelVo apiModelVo, Tab currentTab) {
-		VBox oidcBox = new VBox(10);
+	private VBox createOAuth2Fields(ApiModelVo apiModelVo, Tab currentTab) {
+		VBox oAuth2Box = new VBox(10);
 		
-		Label instructionsLabel = new Label("OIDC Configuration:");
+		Label instructionsLabel = new Label(CommonConstants.AUTHENTICATION_TYPE_OAUTH2 + " Configuration:");
 		instructionsLabel.setStyle("-fx-font-weight: bold;");
 		
 		Label infoLabel = new Label("Enter the token URL in the main URL field above.\nFill in the parameters in the Params tab (grant_type, client_id, client_secret, scope).");
 		infoLabel.setStyle("-fx-text-fill: #666;");
 		infoLabel.setWrapText(true);
 		
-		oidcBox.getChildren().addAll(instructionsLabel, infoLabel);
+		oAuth2Box.getChildren().addAll(instructionsLabel, infoLabel);
 		
-		return oidcBox;
+		return oAuth2Box;
 	}
 }
