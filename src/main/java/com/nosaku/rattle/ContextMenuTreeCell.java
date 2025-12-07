@@ -33,12 +33,15 @@ import javafx.util.StringConverter;
 
 public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 	private ContextMenu childMenu = new ContextMenu();
+	private ContextMenu authChildMenu = new ContextMenu();
 	private ContextMenu authParentMenu = new ContextMenu();
+	private App app;
 
 	public ContextMenuTreeCell(App app) {
 		super(createConverter());
+		this.app = app;
 
-		// Child menu items (for API requests and auth configs)
+		// Child menu items (for API requests)
 		MenuItem renameItem = new MenuItem("Rename");
 		childMenu.getItems().add(renameItem);
 		renameItem.setOnAction(event -> {
@@ -56,11 +59,41 @@ public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 			app.deleteTreeItem(getTreeItem());
 		});
 		
+		// Auth config child menu items
+		MenuItem authRenameItem = new MenuItem("Rename");
+		authChildMenu.getItems().add(authRenameItem);
+		authRenameItem.setOnAction(event -> {
+			getTreeView().setEditable(true);
+			startEdit();
+		});
+		MenuItem authCloneItem = new MenuItem("Clone");
+		authChildMenu.getItems().add(authCloneItem);
+		authCloneItem.setOnAction(event -> {
+			app.cloneTreeItem(getTreeItem());
+		});
+		MenuItem clearTokenItem = new MenuItem("Clear Token");
+		authChildMenu.getItems().add(clearTokenItem);
+		clearTokenItem.setOnAction(event -> {
+			if (getItem() != null && getItem().getId() != null) {
+				app.clearAuthToken(getItem().getId());
+			}
+		});
+		MenuItem authDeleteItem = new MenuItem("Delete");
+		authChildMenu.getItems().add(authDeleteItem);
+		authDeleteItem.setOnAction(event -> {
+			app.deleteTreeItem(getTreeItem());
+		});
+		
 		// Auth parent menu items
 		MenuItem newAuthConfigItem = new MenuItem("New Auth Configuration");
 		authParentMenu.getItems().add(newAuthConfigItem);
 		newAuthConfigItem.setOnAction(event -> {
 			app.addNewAuthConfig();
+		});
+		MenuItem clearAllTokensItem = new MenuItem("Clear All Tokens");
+		authParentMenu.getItems().add(clearAllTokensItem);
+		clearAllTokensItem.setOnAction(event -> {
+			app.clearAllAuthTokens();
 		});
 
 		setOnMouseClicked(new EventHandler<MouseEvent>() {
@@ -80,16 +113,23 @@ public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 		super.updateItem(item, empty);
 
 		if (!isEditing()) {
-			if (getTreeItem() != null && !empty) {
+			if (getTreeItem() != null && !empty && item != null) {
 				// Check if this is the auth parent item
-				if (item != null && "Auth configurations".equals(item.getName()) && 
+				if ("Auth configurations".equals(item.getName()) && 
 						getTreeItem().getParent() != null && getTreeItem().getParent().getValue() != null &&
 						"".equals(getTreeItem().getParent().getValue().getName())) {
 					setContextMenu(authParentMenu);
-				} 
-				// Show child menu for child items
+				}
+				// Check if this is an auth config child
+				else if (item.isAuthConfig() && getTreeItem().getParent() != null && 
+						getTreeItem().getParent().getValue() != null &&
+						"Auth configurations".equals(getTreeItem().getParent().getValue().getName())) {
+					setContextMenu(authChildMenu);
+				}
+				// Show child menu for regular API request child items
 				else if (getTreeItem().getParent() != null && getTreeItem().getParent().getValue() != null &&
-						!"".equals(getTreeItem().getParent().getValue().getName())) {
+						!"".equals(getTreeItem().getParent().getValue().getName()) &&
+						!"Auth configurations".equals(getTreeItem().getParent().getValue().getName())) {
 					setContextMenu(childMenu);
 				} else {
 					setContextMenu(null);

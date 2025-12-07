@@ -44,7 +44,6 @@ import com.nosaku.rattle.util.OAuthTokenStore;
 import com.nosaku.rattle.util.StringUtil;
 import com.nosaku.rattle.vo.ApiModelVo;
 import com.nosaku.rattle.vo.AppVo;
-import com.nosaku.rattle.vo.AuthConfigVo;
 import com.nosaku.rattle.vo.ProxySettingsVo;
 
 import javafx.application.Application;
@@ -649,13 +648,11 @@ public class App extends Application {
 						ApiModelVo authConfig = apiModelVoMap.get(authConfigId);
 						
 						if (authConfig != null && authConfig.isAuthConfig()) {
-							// Fetch token (will use cache if valid, or get new token)
-							String tokenJsonStr = fetchAuthToken(authConfig);
-							
-							// Get bearer token from store (handles caching and expiration)
-							String bearerToken = OAuthTokenStore.getInstance().getBearerToken(authConfigId, tokenJsonStr);
-							
-							// Add to headers
+							if (OAuthTokenStore.getInstance().isTokenExpired(authConfigId)) {
+								String tokenJsonStr = fetchAuthToken(authConfig);
+								OAuthTokenStore.getInstance().storeToken(authConfigId, tokenJsonStr);
+							}
+							String bearerToken = OAuthTokenStore.getInstance().getBearerToken(authConfigId);
 							if (bearerToken != null) {
 								apiModelVo.getHeaders().put("Authorization", bearerToken);
 							}
@@ -818,6 +815,32 @@ public class App extends Application {
 	
 	public void addNewAuthConfig() {
 		tabManager.addNewAuthConfigTab(null, true, false);
+	}
+	
+	public void clearAuthToken(String authConfigId) {
+		OAuthTokenStore.getInstance().clearToken(authConfigId);
+		
+		Alert alert = new Alert(Alert.AlertType.INFORMATION);
+		alert.setTitle("Token Cleared");
+		alert.setHeaderText(null);
+		alert.setContentText("Authentication token has been cleared from cache.");
+		if (centerTabs.getScene() != null && centerTabs.getScene().getWindow() != null) {
+			alert.initOwner(centerTabs.getScene().getWindow());
+		}
+		alert.showAndWait();
+	}
+	
+	public void clearAllAuthTokens() {
+		OAuthTokenStore.getInstance().clearAllTokens();
+		
+		Alert alert = new Alert(Alert.AlertType.INFORMATION);
+		alert.setTitle("Tokens Cleared");
+		alert.setHeaderText(null);
+		alert.setContentText("All authentication tokens have been cleared from cache.");
+		if (centerTabs.getScene() != null && centerTabs.getScene().getWindow() != null) {
+			alert.initOwner(centerTabs.getScene().getWindow());
+		}
+		alert.showAndWait();
 	}
 	
 	private VBox createAuthSelectionContent(ApiModelVo apiModelVo, Tab currentTab) {

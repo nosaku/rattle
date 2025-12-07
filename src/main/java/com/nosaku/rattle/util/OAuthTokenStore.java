@@ -41,31 +41,8 @@ public class OAuthTokenStore {
 		return instance;
 	}
 
-	public String getBearerToken(String authConfigId, String tokenJsonStr) {
+	public boolean isTokenExpired(String authConfigId) {
 		Token token = tokenCacheMap.get(authConfigId);
-		if (isTokenExpired(token)) {
-			token = new Gson().fromJson(tokenJsonStr, Token.class);
-			token.setExpirationTime(System.currentTimeMillis() + (token.getExpires_in() * 1000));
-			tokenCacheMap.put(authConfigId, token);
-		}
-		return "Bearer " + token.getAccess_token();
-	}
-
-	/**
-	 * Clear token for a specific auth config
-	 */
-	public void clearToken(String authConfigId) {
-		tokenCacheMap.remove(authConfigId);
-	}
-	
-	/**
-	 * Clear all tokens
-	 */
-	public void clearAllTokens() {
-		tokenCacheMap.clear();
-	}
-
-	private boolean isTokenExpired(Token token) {
 		boolean isExpired = false;
 		if (token == null) {
 			isExpired = true;
@@ -78,6 +55,34 @@ public class OAuthTokenStore {
 		return isExpired;
 	}
 
+	public void storeToken(String authConfigId, String tokenJsonStr) {
+		Token token = new Gson().fromJson(tokenJsonStr, Token.class);
+		token.setExpirationTime(System.currentTimeMillis() + (token.getExpires_in() * 1000));
+		tokenCacheMap.put(authConfigId, token);
+	}
+
+	public String getBearerToken(String authConfigId) {
+		Token token = tokenCacheMap.get(authConfigId);
+		if (token == null) {
+			return null;
+		}
+		return "Bearer " + token.getAccess_token();
+	}
+
+	/**
+	 * Clear token for a specific auth config
+	 */
+	public void clearToken(String authConfigId) {
+		tokenCacheMap.remove(authConfigId);
+	}
+
+	/**
+	 * Clear all tokens
+	 */
+	public void clearAllTokens() {
+		tokenCacheMap.clear();
+	}
+
 	public static class Token {
 		private String access_token;
 		private int expires_in;
@@ -87,24 +92,31 @@ public class OAuthTokenStore {
 		public String getAccess_token() {
 			return access_token;
 		}
+
 		public void setAccess_token(String access_token) {
 			this.access_token = access_token;
 		}
+
 		public int getExpires_in() {
 			return expires_in;
 		}
+
 		public void setExpires_in(int expires_in) {
 			this.expires_in = expires_in;
 		}
+
 		public long getIssued_time() {
 			return issued_time;
 		}
+
 		public void setIssued_time(long issued_time) {
 			this.issued_time = issued_time;
 		}
+
 		public long getExpirationTime() {
 			return expirationTime;
 		}
+
 		public void setExpirationTime(long expirationTime) {
 			this.expirationTime = expirationTime;
 		}
