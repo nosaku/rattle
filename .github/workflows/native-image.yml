@@ -49,7 +49,7 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          mvn -Pnative package
+          # mvn -Pnative package
           mvn -Pnative-windows package
 
       - name: Archive Release
