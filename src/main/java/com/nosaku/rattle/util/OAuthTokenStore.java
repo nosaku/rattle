@@ -21,18 +21,17 @@
  */
 package com.nosaku.rattle.util;
 
-import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.gson.Gson;
 
 public class OAuthTokenStore {
 	private static OAuthTokenStore instance;
-	private Map<String, Token> tokenMap;
+	private Map<String, Token> tokenCacheMap;
 
 	private OAuthTokenStore() {
-		tokenMap = new HashMap<>();
+		tokenCacheMap = new ConcurrentHashMap<>();
 	}
 
 	public static synchronized OAuthTokenStore getInstance() {
@@ -42,26 +41,37 @@ public class OAuthTokenStore {
 		return instance;
 	}
 
-	public String getBearerToken(String id, String tokenJsonStr) {
-		Token token = tokenMap.get(id);
+	public String getBearerToken(String authConfigId, String tokenJsonStr) {
+		Token token = tokenCacheMap.get(authConfigId);
 		if (isTokenExpired(token)) {
 			token = new Gson().fromJson(tokenJsonStr, Token.class);
-			token.setIssued_time(new Date().getTime());
-			tokenMap.put(id, token);
+			token.setExpirationTime(System.currentTimeMillis() + (token.getExpires_in() * 1000));
+			tokenCacheMap.put(authConfigId, token);
 		}
 		return "Bearer " + token.getAccess_token();
 	}
+
+	/**
+	 * Clear token for a specific auth config
+	 */
+	public void clearToken(String authConfigId) {
+		tokenCacheMap.remove(authConfigId);
+	}
 	
+	/**
+	 * Clear all tokens
+	 */
+	public void clearAllTokens() {
+		tokenCacheMap.clear();
+	}
+
 	private boolean isTokenExpired(Token token) {
 		boolean isExpired = false;
 		if (token == null) {
 			isExpired = true;
 		} else {
-			long currTimeMillis = new Date().getTime();
-			long issuedtimeMillis = token.getIssued_time();
-			long diff = currTimeMillis - issuedtimeMillis;
-			int bufferMillis = 60000;
-			if (diff >= token.getExpires_in()*1000 - bufferMillis) {
+			// Check if token is expired (with 60 second buffer)
+			if (System.currentTimeMillis() >= (token.expirationTime - 60000)) {
 				isExpired = true;
 			}
 		}
@@ -72,6 +82,7 @@ public class OAuthTokenStore {
 		private String access_token;
 		private int expires_in;
 		private long issued_time;
+		private long expirationTime;
 
 		public String getAccess_token() {
 			return access_token;
@@ -90,6 +101,12 @@ public class OAuthTokenStore {
 		}
 		public void setIssued_time(long issued_time) {
 			this.issued_time = issued_time;
+		}
+		public long getExpirationTime() {
+			return expirationTime;
+		}
+		public void setExpirationTime(long expirationTime) {
+			this.expirationTime = expirationTime;
 		}
 	}
 }

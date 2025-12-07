@@ -40,6 +40,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.iliareshetov.RichJsonFX;
 import com.nosaku.rattle.util.CommonConstants;
 import com.nosaku.rattle.util.CommonUtil;
+import com.nosaku.rattle.util.OAuthTokenStore;
 import com.nosaku.rattle.util.StringUtil;
 import com.nosaku.rattle.vo.ApiModelVo;
 import com.nosaku.rattle.vo.AppVo;
@@ -626,11 +627,13 @@ public class App extends Application {
 	private void invokeApi(String tabId, String method, String url, Map<String, String> params,
 			Map<String, String> headers, String body, CodeArea responseArea, Label responseLabel,
 			ProgressIndicator loadingSpinner) {
+		ApiModelVo currentApiModel = apiModelVoMap.get(tabId);
+		
 		ApiModelVo apiModelVo = new ApiModelVo();
 		apiModelVo.setMethod(method);
 		apiModelVo.setUrl(url);
 		apiModelVo.setParams(params);
-		apiModelVo.setHeaders(headers);
+		apiModelVo.setHeaders(headers != null ? new LinkedHashMap<>(headers) : new LinkedHashMap<>());
 		apiModelVo.setBody(body);
 
 		responseArea.clear();
@@ -640,6 +643,25 @@ public class App extends Application {
 			@Override
 			protected Void call() throws Exception {
 				try {
+					// Check if auth config is set for this request
+					if (currentApiModel != null && StringUtil.nonEmptyStr(currentApiModel.getAuthConfigId())) {
+						String authConfigId = currentApiModel.getAuthConfigId();
+						ApiModelVo authConfig = apiModelVoMap.get(authConfigId);
+						
+						if (authConfig != null && authConfig.isAuthConfig()) {
+							// Fetch token (will use cache if valid, or get new token)
+							String tokenJsonStr = fetchAuthToken(authConfig);
+							
+							// Get bearer token from store (handles caching and expiration)
+							String bearerToken = OAuthTokenStore.getInstance().getBearerToken(authConfigId, tokenJsonStr);
+							
+							// Add to headers
+							if (bearerToken != null) {
+								apiModelVo.getHeaders().put("Authorization", bearerToken);
+							}
+						}
+					}
+					
 					ApiHelper.getInstance().invokeApi(apiModelVo);
 				} catch (Exception e) {
 					apiModelVo.setResponse("Error: " + e.getClass().getName() + "\n" + "Message: " + e.getMessage()
@@ -740,6 +762,27 @@ public class App extends Application {
 		});
 	}
 
+	private String fetchAuthToken(ApiModelVo authConfig) throws Exception {
+		// Create a request to fetch the token
+		ApiModelVo tokenRequest = new ApiModelVo();
+		tokenRequest.setMethod(authConfig.getMethod() != null ? authConfig.getMethod() : "POST");
+		tokenRequest.setUrl(authConfig.getUrl());
+		tokenRequest.setParams(authConfig.getParams());
+		tokenRequest.setHeaders(authConfig.getHeaders());
+		tokenRequest.setBody(authConfig.getBody());
+		
+		// Invoke the token endpoint
+		ApiHelper.getInstance().invokeApi(tokenRequest);
+		
+		// Return the JSON response for OAuthTokenStore to parse
+		if (tokenRequest.getStatusCode() >= 200 && tokenRequest.getStatusCode() < 300) {
+			return tokenRequest.getResponse();
+		} else {
+			throw new Exception("Auth token request failed with status " + tokenRequest.getStatusCode() + 
+					": " + tokenRequest.getResponse());
+		}
+	}
+	
 	private Map<String, String> getParams(VBox paramsContainer) {
 		Map<String, String> params = new LinkedHashMap<>();
 		for (Node node : paramsContainer.getChildren()) {
