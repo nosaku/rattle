@@ -36,6 +36,16 @@
         "allPublicFields": true
     },
     {
+        "name": "com.nosaku.rattle.util.OAuthTokenStore$Token",
+        "allDeclaredConstructors": true,
+        "allPublicConstructors": true,
+        "allDeclaredMethods": true,
+        "allPublicMethods": true,
+        "allDeclaredFields": true,
+        "allPublicFields": true,
+        "unsafeAllocated": true
+    },
+    {
         "name": "java.util.HashMap",
         "allDeclaredConstructors": true,
         "allPublicConstructors": true,
