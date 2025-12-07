@@ -46,11 +46,17 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cache: maven
 
-      - name: Build
+      - name: Build (Windows)
+        if: ${{ matrix.os == 'windows-latest' }}
         shell: bash
         run: |
-          # mvn -Pnative package
           mvn -Pnative-windows package
+
+      - name: Build (Linux/Mac)
+        if: ${{ matrix.os != 'windows-latest' }}
+        shell: bash
+        run: |
+          mvn -Pnative package
 
       - name: Archive Release
         uses: thedoctor0/zip-release@0.7.5
