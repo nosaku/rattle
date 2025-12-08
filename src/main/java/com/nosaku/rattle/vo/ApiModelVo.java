@@ -42,6 +42,7 @@ public class ApiModelVo implements Cloneable {
 	private boolean isAuthConfig;
 	private String authType;
 	private String authConfigId;
+	private String groupId;
 
 	@Override
 	public String toString() {
@@ -222,5 +223,13 @@ public class ApiModelVo implements Cloneable {
 
 	public void setAuthConfigId(String authConfigId) {
 		this.authConfigId = authConfigId;
+	}
+
+	public String getGroupId() {
+		return groupId;
+	}
+
+	public void setGroupId(String groupId) {
+		this.groupId = groupId;
 	}
 }

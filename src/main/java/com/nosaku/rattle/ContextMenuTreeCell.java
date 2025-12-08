@@ -21,6 +21,7 @@
  */
 package com.nosaku.rattle;
 
+import com.nosaku.rattle.util.CommonConstants;
 import com.nosaku.rattle.vo.ApiModelVo;
 
 import javafx.event.EventHandler;
@@ -58,7 +59,7 @@ public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 		deleteItem.setOnAction(event -> {
 			app.deleteTreeItem(getTreeItem());
 		});
-		
+
 		// Auth config child menu items
 		MenuItem authRenameItem = new MenuItem("Rename");
 		authChildMenu.getItems().add(authRenameItem);
@@ -83,7 +84,7 @@ public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 		authDeleteItem.setOnAction(event -> {
 			app.deleteTreeItem(getTreeItem());
 		});
-		
+
 		// Auth parent menu items
 		MenuItem newAuthConfigItem = new MenuItem("New Auth Configuration");
 		authParentMenu.getItems().add(newAuthConfigItem);
@@ -115,21 +116,23 @@ public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 		if (!isEditing()) {
 			if (getTreeItem() != null && !empty && item != null) {
 				// Check if this is the auth parent item
-				if ("Auth configurations".equals(item.getName()) && 
-						getTreeItem().getParent() != null && getTreeItem().getParent().getValue() != null &&
-						"".equals(getTreeItem().getParent().getValue().getName())) {
+				if (CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS.equals(item.getName())
+						&& getTreeItem().getParent() != null && getTreeItem().getParent().getValue() != null
+						&& "".equals(getTreeItem().getParent().getValue().getName())) {
 					setContextMenu(authParentMenu);
 				}
 				// Check if this is an auth config child
-				else if (item.isAuthConfig() && getTreeItem().getParent() != null && 
-						getTreeItem().getParent().getValue() != null &&
-						"Auth configurations".equals(getTreeItem().getParent().getValue().getName())) {
+				else if (item.isAuthConfig() && getTreeItem().getParent() != null
+						&& getTreeItem().getParent().getValue() != null
+						&& CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS
+								.equals(getTreeItem().getParent().getValue().getName())) {
 					setContextMenu(authChildMenu);
 				}
 				// Show child menu for regular API request child items
-				else if (getTreeItem().getParent() != null && getTreeItem().getParent().getValue() != null &&
-						!"".equals(getTreeItem().getParent().getValue().getName()) &&
-						!"Auth configurations".equals(getTreeItem().getParent().getValue().getName())) {
+				else if (getTreeItem().getParent() != null && getTreeItem().getParent().getValue() != null
+						&& !"".equals(getTreeItem().getParent().getValue().getName())
+						&& !CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS
+								.equals(getTreeItem().getParent().getValue().getName())) {
 					setContextMenu(childMenu);
 				} else {
 					setContextMenu(null);

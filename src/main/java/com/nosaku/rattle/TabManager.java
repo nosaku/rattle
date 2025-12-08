@@ -104,7 +104,7 @@ public class TabManager {
 		ApiModelVo apiModelVo = null;
 		
 		if (tabId == null) {
-			String title = "Auth Config " + (++authConfigIndex);
+			String title = "Auth config " + (++authConfigIndex);
 			apiModelVo = new ApiModelVo();
 			apiModelVo.setId(UUID.randomUUID().toString());
 			apiModelVo.setName(title);

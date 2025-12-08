@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 import org.controlsfx.control.textfield.TextFields;
 import org.fxmisc.flowless.VirtualizedScrollPane;
@@ -42,6 +43,7 @@ import com.nosaku.rattle.util.CommonConstants;
 import com.nosaku.rattle.util.CommonUtil;
 import com.nosaku.rattle.util.OAuthTokenStore;
 import com.nosaku.rattle.util.StringUtil;
+import com.nosaku.rattle.vo.ApiGroupVo;
 import com.nosaku.rattle.vo.ApiModelVo;
 import com.nosaku.rattle.vo.AppVo;
 import com.nosaku.rattle.vo.ProxySettingsVo;
@@ -68,6 +70,7 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
@@ -88,9 +91,11 @@ import javafx.util.Callback;
 public class App extends Application {
 	private double lastDividerPosition = 0.2;
 	private Map<String, ApiModelVo> apiModelVoMap = new LinkedHashMap<>();
+	private Map<String, ApiGroupVo> apiGroupVoMap = new LinkedHashMap<>();
 	private TabPane centerTabs;
 	private TreeItem<ApiModelVo> rootTreeItem;
 	private TreeItem<ApiModelVo> authConfigTreeItem;
+	private TreeItem<ApiModelVo> virtualRootItem;
 	private TreeView<ApiModelVo> treeView;
 	private ProxySettingsVo proxySettings;
 	private TabManager tabManager;
@@ -114,29 +119,29 @@ public class App extends Application {
 		footer.setStyle("-fx-background-color: #f0f0f0;");
 
 		ApiModelVo historyTreeItem = new ApiModelVo();
-		historyTreeItem.setName("History");
+		historyTreeItem.setName(CommonConstants.GROUP_NAME_HISTORY);
 		rootTreeItem = new TreeItem<>(historyTreeItem);
 		rootTreeItem.setExpanded(true);
-		
+
 		ApiModelVo authConfigParent = new ApiModelVo();
-		authConfigParent.setName("Auth configurations");
+		authConfigParent.setName(CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS);
 		authConfigTreeItem = new TreeItem<>(authConfigParent);
 		authConfigTreeItem.setExpanded(true);
-		
+
 		// Create a virtual root to hold both trees
 		ApiModelVo virtualRoot = new ApiModelVo();
 		virtualRoot.setName("");
-		TreeItem<ApiModelVo> virtualRootItem = new TreeItem<>(virtualRoot);
+		virtualRootItem = new TreeItem<>(virtualRoot);
 		virtualRootItem.setExpanded(true);
 		virtualRootItem.getChildren().addAll(rootTreeItem, authConfigTreeItem);
-		
+
 		centerTabs = new TabPane();
 		treeView = new TreeView<>(virtualRootItem);
 		treeView.setShowRoot(false); // Hide the virtual root
-		
+
 		tabManager = new TabManager(centerTabs, rootTreeItem, authConfigTreeItem, treeView, apiModelVoMap,
 				tabId -> createApiTabContent(tabId), () -> saveApiModelVoMapAsJson());
-		
+
 		// treeView.setEditable(true);
 		treeView.setCellFactory(new Callback<TreeView<ApiModelVo>, TreeCell<ApiModelVo>>() {
 			@Override
@@ -154,7 +159,8 @@ public class App extends Application {
 
 				if (event.getCode() == KeyCode.DELETE) {
 					// Prevent deleting root
-					if (value.getId() != null && !"History".equalsIgnoreCase(value.getName())) {
+					if (value.getId() != null
+							&& !CommonConstants.GROUP_NAME_HISTORY.equalsIgnoreCase(value.getName())) {
 						deleteTreeItem(selectedItem);
 					}
 				} else if (event.getCode() == KeyCode.F2) {
@@ -206,6 +212,11 @@ public class App extends Application {
 			@Override
 			public void onSaveAll() {
 				tabManager.saveAllTabs();
+			}
+
+			@Override
+			public void onAddGroup() {
+				addGroupDialog();
 			}
 
 			@Override
@@ -272,6 +283,7 @@ public class App extends Application {
 		});
 
 		initApp();
+		initGroups();
 		stage.show();
 	}
 
@@ -298,10 +310,10 @@ public class App extends Application {
 			List<ApiModelVo> apiModelVoList = appVo.getApiList();
 			Tab currentTab = null;
 			int lastAuthConfigIndex = 0;
-			
+
 			for (ApiModelVo apiModelVo : apiModelVoList) {
 				apiModelVoMap.put(apiModelVo.getId(), apiModelVo);
-				
+
 				if (apiModelVo.isAuthConfig()) {
 					// Handle auth configuration
 					if (apiModelVo.isTabOpen()) {
@@ -342,9 +354,22 @@ public class App extends Application {
 		}
 	}
 
+	private void initGroups() {
+		if (apiGroupVoMap.isEmpty()) {
+			ApiGroupVo historyGroupVo = new ApiGroupVo();
+			historyGroupVo.setId(UUID.randomUUID().toString());
+			historyGroupVo.setName(CommonConstants.GROUP_NAME_HISTORY);
+			apiGroupVoMap.put(historyGroupVo.getId(), historyGroupVo);
+			ApiGroupVo authGroupVo = new ApiGroupVo();
+			authGroupVo.setId(UUID.randomUUID().toString());
+			authGroupVo.setName(CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS);
+			apiGroupVoMap.put(authGroupVo.getId(), authGroupVo);
+		}
+	}
+
 	private VBox createApiTabContent(String tabId) {
 		ApiModelVo apiModelVo = apiModelVoMap.get(tabId);
-		
+
 		ComboBox<String> methodComboBox = new ComboBox<>(
 				FXCollections.observableArrayList("GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"));
 		if (StringUtil.nonEmptyStr(apiModelVo.getMethod())) {
@@ -353,10 +378,11 @@ public class App extends Application {
 			// Default to POST for auth configs
 			methodComboBox.setValue(apiModelVo.isAuthConfig() ? "POST" : "GET");
 		}
-		
+
 		// Set default URL for auth configs
 		String defaultUrl = apiModelVo.isAuthConfig() ? "" : "https://jsonplaceholder.typicode.com/todos";
-		TextField urlTextField = new TextField(StringUtil.nonEmptyStr(apiModelVo.getUrl()) ? apiModelVo.getUrl() : defaultUrl);
+		TextField urlTextField = new TextField(
+				StringUtil.nonEmptyStr(apiModelVo.getUrl()) ? apiModelVo.getUrl() : defaultUrl);
 		HBox.setHgrow(urlTextField, Priority.ALWAYS);
 		Button sendButton = new Button("Send");
 
@@ -403,7 +429,8 @@ public class App extends Application {
 		} else {
 			// For auth configs, prefill with OAuth2 params
 			if (apiModelVo.isAuthConfig()) {
-				paramsContainer.getChildren().add(createParamRow(paramsContainer, false, "grant_type", "client_credentials"));
+				paramsContainer.getChildren()
+						.add(createParamRow(paramsContainer, false, "grant_type", "client_credentials"));
 				paramsContainer.getChildren().add(createParamRow(paramsContainer, false, "client_id", ""));
 				paramsContainer.getChildren().add(createParamRow(paramsContainer, false, "client_secret", ""));
 				paramsContainer.getChildren().add(createParamRow(paramsContainer, false, "scope", ""));
@@ -438,7 +465,7 @@ public class App extends Application {
 		// Content Area (SplitPane for Parameters/Body and Response)
 		// Top Content: Parameters, Headers, Body selector tabs
 		TabPane topTabs = new TabPane();
-		
+
 		// Add Auth tab (different content for auth configs vs regular requests)
 		if (apiModelVo.isAuthConfig()) {
 			VBox authTabContent = createAuthConfigContent(apiModelVo, finalCurrentTab);
@@ -447,7 +474,7 @@ public class App extends Application {
 			VBox authSelectionContent = createAuthSelectionContent(apiModelVo, finalCurrentTab);
 			topTabs.getTabs().add(new Tab("Auth", authSelectionContent));
 		}
-		
+
 		topTabs.getTabs().add(new Tab("Params", paramsScrollPane));
 		topTabs.getTabs().add(new Tab("Headers", headersScrollPane));
 
@@ -462,7 +489,7 @@ public class App extends Application {
 
 		// Bottom Content: Response and Console tabs
 		TabPane bottomTabs = new TabPane();
-		
+
 		// Response tab
 		VBox responseContainer = new VBox(5);
 		responseContainer.setPadding(new Insets(10));
@@ -474,19 +501,19 @@ public class App extends Application {
 		responseArea.setWrapText(true);
 		responseArea.setStyle("-fx-word-wrap: break-word;");
 		VirtualizedScrollPane<CodeArea> responseAreaScrollPane = new VirtualizedScrollPane<>(responseArea);
-		
+
 		ProgressIndicator loadingSpinner = new ProgressIndicator();
 		loadingSpinner.setMaxSize(50, 50);
 		loadingSpinner.setVisible(false);
-		
+
 		StackPane responseStackPane = new StackPane();
 		responseStackPane.getChildren().addAll(responseAreaScrollPane, loadingSpinner);
 		VBox.setVgrow(responseStackPane, Priority.ALWAYS);
-		
+
 		responseContainer.getChildren().addAll(responseLabelRow, responseStackPane);
 		Tab responseTab = new Tab("Response", responseContainer);
 		responseTab.setClosable(false);
-		
+
 		// Console tab
 		VBox consoleContainer = new VBox(5);
 		consoleContainer.setPadding(new Insets(10));
@@ -495,16 +522,16 @@ public class App extends Application {
 		consoleArea.setWrapText(false);
 		consoleArea.setStyle("-fx-font-family: 'Courier New'; -fx-font-size: 12px;");
 		VBox.setVgrow(consoleArea, Priority.ALWAYS);
-		
+
 		Button clearConsoleButton = new Button("Clear Console");
 		clearConsoleButton.setOnAction(e -> consoleArea.clear());
 		HBox consoleButtonBar = new HBox(10, clearConsoleButton);
 		consoleButtonBar.setPadding(new Insets(0, 0, 5, 0));
-		
+
 		consoleContainer.getChildren().addAll(consoleButtonBar, consoleArea);
 		Tab consoleTab = new Tab("Console", consoleContainer);
 		consoleTab.setClosable(false);
-		
+
 		bottomTabs.getTabs().addAll(responseTab, consoleTab);
 
 		SplitPane mainContentSplit = new SplitPane();
@@ -518,7 +545,8 @@ public class App extends Application {
 
 		Runnable sendAction = () -> {
 			invokeApi(tabId, methodComboBox.getValue(), urlTextField.getText(), getParams(paramsContainer),
-					getParams(headersContainer), bodyTextArea.getText(), responseArea, responseLabel, loadingSpinner, consoleArea);
+					getParams(headersContainer), bodyTextArea.getText(), responseArea, responseLabel, loadingSpinner,
+					consoleArea);
 		};
 
 		sendButton.setOnAction(e -> sendAction.run());
@@ -614,7 +642,7 @@ public class App extends Application {
 			return;
 		}
 		ApiModelVo value = treeItem.getValue();
-		if (value.getId() == null || "History".equalsIgnoreCase(value.getName())) {
+		if (value.getId() == null || CommonConstants.GROUP_NAME_HISTORY.equalsIgnoreCase(value.getName())) {
 			return;
 		}
 
@@ -642,7 +670,7 @@ public class App extends Application {
 			Map<String, String> headers, String body, CodeArea responseArea, Label responseLabel,
 			ProgressIndicator loadingSpinner, TextArea consoleArea) {
 		ApiModelVo currentApiModel = apiModelVoMap.get(tabId);
-		
+
 		ApiModelVo apiModelVo = new ApiModelVo();
 		apiModelVo.setMethod(method);
 		apiModelVo.setUrl(url);
@@ -661,7 +689,7 @@ public class App extends Application {
 					if (currentApiModel != null && StringUtil.nonEmptyStr(currentApiModel.getAuthConfigId())) {
 						String authConfigId = currentApiModel.getAuthConfigId();
 						ApiModelVo authConfig = apiModelVoMap.get(authConfigId);
-						
+
 						if (authConfig != null && authConfig.isAuthConfig()) {
 							if (OAuthTokenStore.getInstance().isTokenExpired(authConfigId)) {
 								String tokenJsonStr = fetchAuthToken(authConfig);
@@ -673,7 +701,7 @@ public class App extends Application {
 							}
 						}
 					}
-					
+
 					ApiHelper.getInstance().invokeApi(apiModelVo);
 				} catch (Exception e) {
 					apiModelVo.setResponse("Error: " + e.getClass().getName() + "\n" + "Message: " + e.getMessage()
@@ -686,7 +714,7 @@ public class App extends Application {
 			@Override
 			protected void succeeded() {
 				loadingSpinner.setVisible(false);
-				
+
 				responseLabel.setText("Status Code: " + apiModelVo.getStatusCode());
 				responseArea.appendText(apiModelVo.getResponse());
 				responseArea.scrollYToPixel(0);
@@ -709,7 +737,7 @@ public class App extends Application {
 			@Override
 			protected void failed() {
 				loadingSpinner.setVisible(false);
-				
+
 				responseLabel.setText("Status: Error");
 				if (apiModelVo.getResponse() != null && !apiModelVo.getResponse().isEmpty()) {
 					responseArea.appendText(apiModelVo.getResponse());
@@ -720,8 +748,9 @@ public class App extends Application {
 					}
 				} else {
 					Throwable exception = getException();
-					responseArea.appendText("Error: " + exception.getClass().getName() + "\n" + "Message: "
-							+ exception.getMessage() + "\n\n" + "Stack Trace:\n" + CommonUtil.getStackTraceAsString(exception));
+					responseArea.appendText(
+							"Error: " + exception.getClass().getName() + "\n" + "Message: " + exception.getMessage()
+									+ "\n\n" + "Stack Trace:\n" + CommonUtil.getStackTraceAsString(exception));
 					if (apiModelVo.getConsoleLog() != null) {
 						Platform.runLater(() -> {
 							consoleArea.appendText(apiModelVo.getConsoleLog() + "\n");
@@ -746,11 +775,19 @@ public class App extends Application {
 			AppVo appVo = new AppVo();
 			List<ApiModelVo> apiModelVoList = new ArrayList<>();
 			appVo.setApiList(apiModelVoList);
+			appVo.setApiGroups(new ArrayList<>(apiGroupVoMap.values()));
 			appVo.setProxySettings(this.proxySettings);
 			for (Map.Entry<String, ApiModelVo> entry : apiModelVoMap.entrySet()) {
 				ApiModelVo apiModelVo = entry.getValue().clone();
 				apiModelVo.setResponse(null);
 				apiModelVo.setConsoleLog(null);
+				if (apiModelVo.getGroupId() == null) {
+					if (apiModelVo.isAuthConfig()) {
+						apiModelVo.setGroupId(getGroupId(CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS));
+					} else {
+						apiModelVo.setGroupId(getGroupId(CommonConstants.GROUP_NAME_HISTORY));
+					}
+				}
 				apiModelVoList.add(apiModelVo);
 				for (Tab tab : centerTabs.getTabs()) {
 					if (tab.getId().equals(apiModelVo.getId())) {
@@ -782,6 +819,55 @@ public class App extends Application {
 		});
 	}
 
+	private void addGroupDialog() {
+		TextInputDialog dialog = new TextInputDialog();
+		dialog.setTitle("Add Group");
+		dialog.setHeaderText("Create a new API group");
+		dialog.setContentText("Group name:");
+		dialog.initOwner(centerTabs.getScene() != null ? centerTabs.getScene().getWindow() : null);
+
+		dialog.showAndWait().ifPresent(groupName -> {
+			if (groupName == null || groupName.trim().isEmpty()) {
+				Alert alert = new Alert(Alert.AlertType.ERROR);
+				alert.setTitle("Invalid Group Name");
+				alert.setHeaderText("Group name cannot be empty");
+				alert.setContentText("Please enter a valid group name.");
+				alert.initOwner(centerTabs.getScene().getWindow());
+				alert.showAndWait();
+				return;
+			}
+
+			String trimmedGroupName = groupName.trim();
+
+			// Check if group already exists
+			if (isGroupExists(trimmedGroupName)) {
+				Alert alert = new Alert(Alert.AlertType.ERROR);
+				alert.setTitle("Duplicate Group");
+				alert.setHeaderText("Group already exists");
+				alert.setContentText("A group with the name '" + trimmedGroupName
+						+ "' already exists. Please use a different name.");
+				alert.initOwner(centerTabs.getScene().getWindow());
+				alert.showAndWait();
+				return;
+			}
+
+			// Create new group
+			ApiGroupVo newGroup = new ApiGroupVo();
+			newGroup.setId(UUID.randomUUID().toString());
+			newGroup.setName(trimmedGroupName);
+
+			// Add to map
+			apiGroupVoMap.put(newGroup.getId(), newGroup);
+
+			// Create tree item for the group
+			ApiModelVo groupVo = new ApiModelVo();
+			groupVo.setName(trimmedGroupName);
+			TreeItem<ApiModelVo> groupTreeItem = new TreeItem<>(groupVo);
+			groupTreeItem.setExpanded(true);
+			virtualRootItem.getChildren().add(groupTreeItem);
+		});
+	}
+
 	private String fetchAuthToken(ApiModelVo authConfig) throws Exception {
 		// Create a request to fetch the token
 		ApiModelVo tokenRequest = new ApiModelVo();
@@ -790,19 +876,19 @@ public class App extends Application {
 		tokenRequest.setParams(authConfig.getParams());
 		tokenRequest.setHeaders(authConfig.getHeaders());
 		tokenRequest.setBody(authConfig.getBody());
-		
+
 		// Invoke the token endpoint
 		ApiHelper.getInstance().invokeApi(tokenRequest);
-		
+
 		// Return the JSON response for OAuthTokenStore to parse
 		if (tokenRequest.getStatusCode() >= 200 && tokenRequest.getStatusCode() < 300) {
 			return tokenRequest.getResponse();
 		} else {
-			throw new Exception("Auth token request failed with status " + tokenRequest.getStatusCode() + 
-					": " + tokenRequest.getResponse());
+			throw new Exception("Auth token request failed with status " + tokenRequest.getStatusCode() + ": "
+					+ tokenRequest.getResponse());
 		}
 	}
-	
+
 	private Map<String, String> getParams(VBox paramsContainer) {
 		Map<String, String> params = new LinkedHashMap<>();
 		for (Node node : paramsContainer.getChildren()) {
@@ -835,41 +921,41 @@ public class App extends Application {
 	public void openTab(String id) {
 		tabManager.openTab(id);
 	}
-	
+
 	public void addNewAuthConfig() {
 		tabManager.addNewAuthConfigTab(null, true, false);
 	}
-	
+
 	public void clearAuthToken(String authConfigId) {
 		OAuthTokenStore.getInstance().clearToken(authConfigId);
 	}
-	
+
 	public void clearAllAuthTokens() {
 		OAuthTokenStore.getInstance().clearAllTokens();
 	}
-	
+
 	private VBox createAuthSelectionContent(ApiModelVo apiModelVo, Tab currentTab) {
 		VBox authBox = new VBox(10);
 		authBox.setPadding(new Insets(10));
-		
+
 		Label authLabel = new Label("Authentication:");
 		ComboBox<String> authComboBox = new ComboBox<>();
 		authComboBox.setPromptText("Select authentication");
 		authComboBox.setPrefWidth(300);
-		
+
 		// Build list of auth configurations with display names
 		Map<String, String> authConfigMap = new LinkedHashMap<>(); // id -> name
 		authConfigMap.put("None", "None");
-		
+
 		// Get all auth configs from the tree
 		for (TreeItem<ApiModelVo> item : authConfigTreeItem.getChildren()) {
 			if (item.getValue() != null && item.getValue().getId() != null && item.getValue().getName() != null) {
 				authConfigMap.put(item.getValue().getId(), item.getValue().getName());
 			}
 		}
-		
+
 		authComboBox.setItems(FXCollections.observableArrayList(authConfigMap.values()));
-		
+
 		// Set current selection - find name by ID
 		String displayName = "None";
 		if (StringUtil.nonEmptyStr(apiModelVo.getAuthConfigId())) {
@@ -881,11 +967,11 @@ public class App extends Application {
 			}
 		}
 		authComboBox.setValue(displayName);
-		
+
 		authComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
 			if (currentTab != null && !newVal.equals(oldVal)) {
 				tabManager.markTabAsModified(currentTab);
-				
+
 				// Find ID by name
 				String selectedId = null;
 				for (Map.Entry<String, String> entry : authConfigMap.entrySet()) {
@@ -897,24 +983,23 @@ public class App extends Application {
 				apiModelVo.setAuthConfigId("None".equals(selectedId) ? null : selectedId);
 			}
 		});
-		
+
 		authBox.getChildren().addAll(authLabel, authComboBox);
-		
+
 		return authBox;
 	}
-	
+
 	private VBox createAuthConfigContent(ApiModelVo apiModelVo, Tab currentTab) {
 		VBox authBox = new VBox(10);
 		authBox.setPadding(new Insets(10));
-		
+
 		// Auth Type Dropdown
 		Label authTypeLabel = new Label("Authentication Type:");
 		ComboBox<String> authTypeComboBox = new ComboBox<>(
-			FXCollections.observableArrayList(CommonConstants.AUTHENTICATION_TYPES)
-		);
+				FXCollections.observableArrayList(CommonConstants.AUTHENTICATION_TYPES));
 		authTypeComboBox.setPromptText("Select authentication type");
 		authTypeComboBox.setPrefWidth(300);
-		
+
 		if (StringUtil.nonEmptyStr(apiModelVo.getAuthType())) {
 			authTypeComboBox.setValue(apiModelVo.getAuthType());
 		}
@@ -922,21 +1007,21 @@ public class App extends Application {
 		// Container for auth-type specific fields
 		VBox fieldsContainer = new VBox(10);
 		fieldsContainer.setPadding(new Insets(10, 0, 0, 0));
-		
+
 		VBox oAuth2Fields = createOAuth2Fields(apiModelVo, currentTab);
 		if (CommonConstants.AUTHENTICATION_TYPE_OAUTH2.equals(authTypeComboBox.getValue())) {
 			fieldsContainer.getChildren().add(oAuth2Fields);
 		}
-		
+
 		// Listen for auth type changes
 		authTypeComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
 			if (currentTab != null && !newVal.equals(oldVal)) {
 				tabManager.markTabAsModified(currentTab);
 			}
-			
+
 			apiModelVo.setAuthType(newVal);
 			fieldsContainer.getChildren().clear();
-			
+
 			if (CommonConstants.AUTHENTICATION_TYPE_OAUTH2.equals(newVal)) {
 				fieldsContainer.getChildren().add(oAuth2Fields);
 				prefillOAuth2Defaults(apiModelVo);
@@ -947,29 +1032,39 @@ public class App extends Application {
 				fieldsContainer.getChildren().add(comingSoonLabel);
 			}
 		});
-		
+
 		authBox.getChildren().addAll(authTypeLabel, authTypeComboBox, fieldsContainer);
-		
+
 		return authBox;
 	}
-	
+
 	private void prefillOAuth2Defaults(ApiModelVo apiModelVo) {
 		// Params will be prefilled when the tab is created
 		// This method is for any additional setup when auth type changes
 	}
-	
+
 	private VBox createOAuth2Fields(ApiModelVo apiModelVo, Tab currentTab) {
 		VBox oAuth2Box = new VBox(10);
-		
+
 		Label instructionsLabel = new Label(CommonConstants.AUTHENTICATION_TYPE_OAUTH2 + " Configuration:");
 		instructionsLabel.setStyle("-fx-font-weight: bold;");
-		
-		Label infoLabel = new Label("Enter the token URL in the main URL field above.\nFill in the parameters in the Params tab (grant_type, client_id, client_secret, scope).");
+
+		Label infoLabel = new Label(
+				"Enter the token URL in the main URL field above.\nFill in the parameters in the Params tab (grant_type, client_id, client_secret, scope).");
 		infoLabel.setStyle("-fx-text-fill: #666;");
 		infoLabel.setWrapText(true);
-		
+
 		oAuth2Box.getChildren().addAll(instructionsLabel, infoLabel);
-		
+
 		return oAuth2Box;
+	}
+
+	private String getGroupId(String groupName) {
+		return apiGroupVoMap.values().stream().filter(group -> groupName.equalsIgnoreCase(group.getName()))
+				.map(ApiGroupVo::getId).findFirst().orElse(null);
+	}
+
+	private boolean isGroupExists(String groupName) {
+		return apiGroupVoMap.values().stream().anyMatch(group -> group.getName().equalsIgnoreCase(groupName));
 	}
 }

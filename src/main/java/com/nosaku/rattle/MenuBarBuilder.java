@@ -62,6 +62,11 @@ public class MenuBarBuilder {
 		newRequestMenuItem.setOnAction(e -> callbacks.onNewRequest());
 		newRequestMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.T, KeyCombination.CONTROL_DOWN));
 		
+		MenuItem addGroupMenuItem = new MenuItem("Add _Group");
+		addGroupMenuItem.setMnemonicParsing(true);
+		addGroupMenuItem.setOnAction(e -> callbacks.onAddGroup());
+		addGroupMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.G, KeyCombination.CONTROL_DOWN));
+		
 		MenuItem saveMenuItem = new MenuItem("_Save");
 		saveMenuItem.setMnemonicParsing(true);
 		saveMenuItem.setOnAction(e -> callbacks.onSave());
@@ -78,7 +83,7 @@ public class MenuBarBuilder {
 		exitMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.X, KeyCombination.ALT_DOWN));
 		exitMenuItem.setOnAction(e -> Platform.exit());
 		
-		fileMenu.getItems().addAll(newRequestMenuItem, saveMenuItem, saveAllMenuItem, exitMenuItem);
+		fileMenu.getItems().addAll(newRequestMenuItem, addGroupMenuItem, saveMenuItem, saveAllMenuItem, exitMenuItem);
 		return fileMenu;
 	}
 	
@@ -113,6 +118,7 @@ public class MenuBarBuilder {
 		void onNewRequest();
 		void onSave();
 		void onSaveAll();
+		void onAddGroup();
 		void onProxySettings();
 		void onAbout();
 	}
