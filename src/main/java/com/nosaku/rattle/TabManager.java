@@ -254,6 +254,14 @@ public class TabManager {
 					rootTreeItem = treeItemMap.get(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_HISTORY, apiGroupVoMap));
 					rootTreeItem.getChildren().add(newTreeItem);
 				}
+			} else if (tabId != null && apiModelVo.getGroupId() != null) {
+				// If loading existing item with groupId (from initApp), use its saved group
+				rootTreeItem = treeItemMap.get(apiModelVo.getGroupId());
+				if (rootTreeItem == null) {
+					// Fallback to History if saved group doesn't exist
+					rootTreeItem = treeItemMap.get(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_HISTORY, apiGroupVoMap));
+				}
+				rootTreeItem.getChildren().add(newTreeItem);
 			} else {
 				// For new requests, add to selected parent or History if nothing selected
 				if (selectedItem != null) {

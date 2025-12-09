@@ -128,6 +128,7 @@ public class App extends Application {
 		for (ApiGroupVo apiGroupVo : apiGroupVoMap.values()) {
 			ApiModelVo apiModelVo = new ApiModelVo();
 			apiModelVo.setName(apiGroupVo.getName());
+			apiModelVo.setId(apiGroupVo.getId());
 			TreeItem<ApiModelVo> treeItem = new TreeItem<>(apiModelVo);
 			treeItem.setExpanded(true);
 			virtualRootItem.getChildren().addAll(treeItem);
@@ -334,7 +335,11 @@ public class App extends Application {
 					}
 				} else {
 					TreeItem<ApiModelVo> newTreeItem = new TreeItem<>(apiModelVo);
-					treeItemMap.get(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS, apiGroupVoMap)).getChildren().add(newTreeItem);
+					String groupId = null;
+					if (apiModelVo.getGroupId() == null) {
+						groupId = CommonUtil.getGroupId(CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS, apiGroupVoMap);
+					}
+					treeItemMap.get(groupId).getChildren().add(newTreeItem);
 				}
 				if (apiModelVo.getTabNbr() > lastAuthConfigIndex) {
 					lastAuthConfigIndex = apiModelVo.getTabNbr();
@@ -348,7 +353,11 @@ public class App extends Application {
 					}
 				} else {
 					TreeItem<ApiModelVo> newTreeItem = new TreeItem<>(apiModelVo);
-					treeItemMap.get(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_HISTORY, apiGroupVoMap)).getChildren().add(newTreeItem);
+					String groupId = null;
+					if (apiModelVo.getGroupId() == null) {
+						groupId = CommonUtil.getGroupId(CommonConstants.GROUP_NAME_HISTORY, apiGroupVoMap);
+					}
+					treeItemMap.get(groupId).getChildren().add(newTreeItem);
 				}
 				if (apiModelVo.getTabNbr() > lastTabIndex) {
 					lastTabIndex = apiModelVo.getTabNbr();
@@ -870,6 +879,7 @@ public class App extends Application {
 			// Create tree item for the group
 			ApiModelVo groupVo = new ApiModelVo();
 			groupVo.setName(trimmedGroupName);
+			groupVo.setId(newGroup.getId());
 			TreeItem<ApiModelVo> groupTreeItem = new TreeItem<>(groupVo);
 			groupTreeItem.setExpanded(true);
 			virtualRootItem.getChildren().add(groupTreeItem);
