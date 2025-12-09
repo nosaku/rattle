@@ -1028,6 +1028,15 @@ public class App extends Application {
 		}
 		tabManager.addNewAuthConfigTab(null, true, false, groupTreeItem.getValue().getId());
 	}
+	
+	public void addNewRequestToGroup(TreeItem<ApiModelVo> groupTreeItem) {
+		if (groupTreeItem == null || groupTreeItem.getValue() == null) {
+			return;
+		}
+		// Select the group first so the new request gets added to it
+		treeView.getSelectionModel().select(groupTreeItem);
+		tabManager.addNewTab(null, true, false);
+	}
 
 	public void clearAuthToken(String authConfigId) {
 		OAuthTokenStore.getInstance().clearToken(authConfigId);
