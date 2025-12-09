@@ -102,138 +102,57 @@ public class TabManager {
 	 * Adds a new auth configuration tab to the tab pane
 	 */
 	public Tab addNewAuthConfigTab(String tabId, boolean isAddTreeItem, boolean isCloneItem) {
-		return addNewAuthConfigTab(tabId, isAddTreeItem, isCloneItem, null);
+		return addNewTab(tabId, isAddTreeItem, isCloneItem, null, true);
 	}
 	
 	/**
 	 * Adds a new auth configuration tab to the tab pane with specific parent group
 	 */
 	public Tab addNewAuthConfigTab(String tabId, boolean isAddTreeItem, boolean isCloneItem, String parentGroupId) {
-		Tab tab = new Tab();
-		tab.setClosable(true);
-
-		ApiModelVo apiModelVo = null;
-		
-		if (tabId == null) {
-			String title = "Auth config " + (++authConfigIndex);
-			apiModelVo = new ApiModelVo();
-			apiModelVo.setId(UUID.randomUUID().toString());
-			apiModelVo.setName(title);
-			apiModelVo.setTabNbr(authConfigIndex);
-			apiModelVo.setNewTab(true);
-			apiModelVo.setAuthConfig(true);
-			apiModelVoMap.put(apiModelVo.getId(), apiModelVo);
-			tab.setText(truncateTabTitle(title) + " *");
-			tab.setId(apiModelVo.getId());
-		} else {
-			apiModelVo = apiModelVoMap.get(tabId);
-			if (isCloneItem) {
-				++authConfigIndex;
-				ApiModelVo clonedModel = apiModelVo.clone();
-				clonedModel.setId(UUID.randomUUID().toString());
-				clonedModel.setName("(Copy) " + apiModelVo.getName());
-				clonedModel.setTabNbr(authConfigIndex);
-				clonedModel.setNewTab(true);
-				clonedModel.setModified(true);
-				clonedModel.setTabOpen(true);
-				clonedModel.setCurrentTab(true);
-				clonedModel.setAuthConfig(true);
-				apiModelVoMap.put(clonedModel.getId(), clonedModel);
-				tab.setText(truncateTabTitle(clonedModel.getName()) + " *");
-				tab.setId(clonedModel.getId());
-				apiModelVo = clonedModel;
-			} else {
-				tab.setText(truncateTabTitle(apiModelVo.getName()));
-				tab.setId(apiModelVo.getId());
-			}
-		}
-		
-		tabPane.getTabs().add(tab);
-		
-		// Use the same content factory for both API requests and auth configs
-		VBox contentContainer = contentFactory.createTabContent(tab.getId());
-		contentContainer.setFocusTraversable(true);
-		tab.setContent(contentContainer);
-		
-		if (tabId == null || isAddTreeItem) {
-			TreeItem<ApiModelVo> newTreeItem = new TreeItem<>(apiModelVo);
-			
-			// Determine the parent tree item - use parentGroupId if provided, otherwise default to Auth Configurations root
-			TreeItem<ApiModelVo> authConfigTreeItem;
-			if (parentGroupId != null && treeItemMap.containsKey(parentGroupId)) {
-				authConfigTreeItem = treeItemMap.get(parentGroupId);
-				apiModelVo.setGroupId(parentGroupId);
-			} else {
-				authConfigTreeItem = treeItemMap.get(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS, apiGroupVoMap));
-				if (authConfigTreeItem != null && authConfigTreeItem.getValue() != null) {
-					apiModelVo.setGroupId(authConfigTreeItem.getValue().getId());
-				}
-			}
-			
-			// If cloning, insert after the source item
-			if (isCloneItem && tabId != null) {
-				TreeItem<ApiModelVo> sourceTreeItem = findTreeItemById(tabId, authConfigTreeItem);
-				if (sourceTreeItem != null) {
-					int sourceIndex = authConfigTreeItem.getChildren().indexOf(sourceTreeItem);
-					authConfigTreeItem.getChildren().add(sourceIndex + 1, newTreeItem);
-				} else {
-					authConfigTreeItem.getChildren().add(newTreeItem);
-				}
-			} else {
-				authConfigTreeItem.getChildren().add(newTreeItem);
-			}
-			
-			treeView.getSelectionModel().select(newTreeItem);
-			tab.selectedProperty().addListener((observable, oldValue, newValue) -> {
-				if (newValue) {
-					treeView.getSelectionModel().select(newTreeItem);
-				}
-			});
-		}
-		
-		tab.setOnCloseRequest(event -> handleTabClose(tab, event));
-		
-		tabPane.getSelectionModel().select(tab);
-		Platform.runLater(() -> {
-			if (tab.getContent() != null) {
-				tab.getContent().requestFocus();
-			}
-		});
-		
-		return tab;
+		return addNewTab(tabId, isAddTreeItem, isCloneItem, parentGroupId, true);
 	}
 	
 	/**
 	 * Adds a new tab to the tab pane
 	 */
 	public Tab addNewTab(String tabId, boolean isAddTreeItem, boolean isCloneItem) {
+		return addNewTab(tabId, isAddTreeItem, isCloneItem, null, false);
+	}
+	
+	/**
+	 * Unified method to add a new tab (regular or auth config) to the tab pane
+	 */
+	private Tab addNewTab(String tabId, boolean isAddTreeItem, boolean isCloneItem, String parentGroupId, boolean isAuthConfig) {
 		Tab tab = new Tab();
 		tab.setClosable(true);				
 
 		ApiModelVo apiModelVo = null;
 		
 		if (tabId == null) {
-			String title = "Request " + (++tabIndex);
+			int index = isAuthConfig ? ++authConfigIndex : ++tabIndex;
+			String title = isAuthConfig ? "Auth config " + index : "Request " + index;
 			apiModelVo = new ApiModelVo();
 			apiModelVo.setId(UUID.randomUUID().toString());
 			apiModelVo.setName(title);
-			apiModelVo.setTabNbr(tabIndex);
+			apiModelVo.setTabNbr(index);
 			apiModelVo.setNewTab(true);
+			apiModelVo.setAuthConfig(isAuthConfig);
 			apiModelVoMap.put(apiModelVo.getId(), apiModelVo);
 			tab.setText(truncateTabTitle(title) + " *");
 			tab.setId(apiModelVo.getId());
 		} else {
 			apiModelVo = apiModelVoMap.get(tabId);
 			if (isCloneItem) {
-				++tabIndex;
+				int index = isAuthConfig ? ++authConfigIndex : ++tabIndex;
 				ApiModelVo clonedModel = apiModelVo.clone();
 				clonedModel.setId(UUID.randomUUID().toString());
 				clonedModel.setName("(Copy) " + apiModelVo.getName());
-				clonedModel.setTabNbr(tabIndex);
+				clonedModel.setTabNbr(index);
 				clonedModel.setNewTab(true);
 				clonedModel.setModified(true);
 				clonedModel.setTabOpen(true);
 				clonedModel.setCurrentTab(true);
+				clonedModel.setAuthConfig(isAuthConfig);
 				apiModelVoMap.put(clonedModel.getId(), clonedModel);
 				tab.setText(truncateTabTitle(clonedModel.getName()) + " *");
 				tab.setId(clonedModel.getId());
@@ -256,8 +175,13 @@ public class TabManager {
 			// Determine the parent tree item
 			TreeItem<ApiModelVo> rootTreeItem = null;
 			TreeItem<ApiModelVo> selectedItem = treeView.getSelectionModel().getSelectedItem();
+			String defaultGroupName = isAuthConfig ? CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS : CommonConstants.GROUP_NAME_HISTORY;
 			
-			if (isCloneItem && tabId != null) {
+			if (parentGroupId != null && treeItemMap.containsKey(parentGroupId)) {
+				// Explicit parent group provided (from context menu)
+				rootTreeItem = treeItemMap.get(parentGroupId);
+				apiModelVo.setGroupId(parentGroupId);
+			} else if (isCloneItem && tabId != null) {
 				// If cloning, insert after the source item in the same parent
 				TreeItem<ApiModelVo> sourceTreeItem = findTreeItemById(tabId);
 				if (sourceTreeItem != null && sourceTreeItem.getParent() != null) {
@@ -269,37 +193,65 @@ public class TabManager {
 						apiModelVo.setGroupId(rootTreeItem.getValue().getId());
 					}
 				} else {
-					rootTreeItem = treeItemMap.get(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_HISTORY, apiGroupVoMap));
+					rootTreeItem = treeItemMap.get(CommonUtil.getGroupId(defaultGroupName, apiGroupVoMap));
 					rootTreeItem.getChildren().add(newTreeItem);
 				}
 			} else if (tabId != null && apiModelVo.getGroupId() != null) {
 				// If loading existing item with groupId (from initApp), use its saved group
 				rootTreeItem = treeItemMap.get(apiModelVo.getGroupId());
 				if (rootTreeItem == null) {
-					// Fallback to History if saved group doesn't exist
-					rootTreeItem = treeItemMap.get(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_HISTORY, apiGroupVoMap));
+					// Fallback to default group if saved group doesn't exist
+					rootTreeItem = treeItemMap.get(CommonUtil.getGroupId(defaultGroupName, apiGroupVoMap));
 				}
 				rootTreeItem.getChildren().add(newTreeItem);
 			} else {
-				// For new requests, add to selected parent or History if nothing selected
+				// For new items, add to selected parent or default group if nothing selected
 				if (selectedItem != null) {
 					boolean isGroup = treeItemMap.containsValue(selectedItem);
 					if (isGroup && selectedItem.getValue() != null) {
-						if (!CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS.equals(selectedItem.getValue().getName())) {
-							rootTreeItem = selectedItem;
+						// Check if selection matches the item type (auth config vs regular request)
+						if (isAuthConfig) {
+							// For auth configs, check if this group or ancestor is Auth Configurations
+							TreeItem<ApiModelVo> current = selectedItem;
+							while (current != null && current.getValue() != null) {
+								if (CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS.equals(current.getValue().getName())) {
+									rootTreeItem = selectedItem;
+									break;
+								}
+								current = current.getParent();
+							}
+						} else {
+							// For regular requests, exclude Auth Configurations hierarchy
+							if (!CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS.equals(selectedItem.getValue().getName())) {
+								rootTreeItem = selectedItem;
+							}
 						}
 					} else if (selectedItem.getParent() != null) {
 						TreeItem<ApiModelVo> parentItem = selectedItem.getParent();
-						if (parentItem.getValue() != null && 
-							!CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS.equals(parentItem.getValue().getName())) {
-							rootTreeItem = parentItem;
+						if (parentItem.getValue() != null) {
+							if (isAuthConfig) {
+								// Check if parent or ancestor is Auth Configurations
+								TreeItem<ApiModelVo> current = parentItem;
+								while (current != null && current.getValue() != null) {
+									if (CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS.equals(current.getValue().getName())) {
+										rootTreeItem = parentItem;
+										break;
+									}
+									current = current.getParent();
+								}
+							} else {
+								// For regular requests, exclude Auth Configurations hierarchy
+								if (!CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS.equals(parentItem.getValue().getName())) {
+									rootTreeItem = parentItem;
+								}
+							}
 						}
 					}
 				}
 				
-				// Default to History if no valid parent found
+				// Default to appropriate root group if no valid parent found
 				if (rootTreeItem == null) {
-					rootTreeItem = treeItemMap.get(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_HISTORY, apiGroupVoMap));
+					rootTreeItem = treeItemMap.get(CommonUtil.getGroupId(defaultGroupName, apiGroupVoMap));
 				}
 				
 				rootTreeItem.getChildren().add(newTreeItem);
