@@ -1145,16 +1145,13 @@ public class App extends Application {
 		authComboBox.setPromptText("Select authentication");
 		authComboBox.setPrefWidth(300);
 
-		// Build list of auth configurations with display names
-		Map<String, String> authConfigMap = new LinkedHashMap<>(); // id -> name
+		// Build list of auth configurations with display names including group hierarchy
+		Map<String, String> authConfigMap = new LinkedHashMap<>(); // id -> display name with path
 		authConfigMap.put("None", "None");
 
-		// Get all auth configs from the tree
-		for (TreeItem<ApiModelVo> item : treeItemMap.get(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS, apiGroupVoMap)).getChildren()) {
-			if (item.getValue() != null && item.getValue().getId() != null && item.getValue().getName() != null) {
-				authConfigMap.put(item.getValue().getId(), item.getValue().getName());
-			}
-		}
+		// Get all auth configs from the tree recursively
+		TreeItem<ApiModelVo> authConfigRoot = treeItemMap.get(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS, apiGroupVoMap));
+		collectAuthConfigsWithPath(authConfigRoot, authConfigMap, "");
 
 		authComboBox.setItems(FXCollections.observableArrayList(authConfigMap.values()));
 
@@ -1189,6 +1186,33 @@ public class App extends Application {
 		authBox.getChildren().addAll(authLabel, authComboBox);
 
 		return authBox;
+	}
+	
+	/**
+	 * Recursively collects auth configs with their full group path
+	 */
+	private void collectAuthConfigsWithPath(TreeItem<ApiModelVo> node, Map<String, String> authConfigMap, String parentPath) {
+		if (node == null) {
+			return;
+		}
+		
+		for (TreeItem<ApiModelVo> child : node.getChildren()) {
+			if (child.getValue() != null) {
+				boolean isGroup = treeItemMap.containsValue(child);
+				
+				if (isGroup) {
+					// This is a subgroup, recurse with updated path
+					String newPath = parentPath.isEmpty() ? child.getValue().getName() : parentPath + " → " + child.getValue().getName();
+					collectAuthConfigsWithPath(child, authConfigMap, newPath);
+				} else if (child.getValue().isAuthConfig() && child.getValue().getId() != null && child.getValue().getName() != null) {
+					// This is an auth config item
+					String displayName = parentPath.isEmpty() 
+						? child.getValue().getName() 
+						: parentPath + " → " + child.getValue().getName();
+					authConfigMap.put(child.getValue().getId(), displayName);
+				}
+			}
+		}
 	}
 
 	private VBox createAuthConfigContent(ApiModelVo apiModelVo, Tab currentTab) {
