@@ -235,19 +235,57 @@ public class TabManager {
 		if (tabId == null || isAddTreeItem) {
 			TreeItem<ApiModelVo> newTreeItem = new TreeItem<>(apiModelVo);
 			
-			// If cloning, insert after the source item
-			// TODO add specific tree rather than history
-			TreeItem<ApiModelVo> rootTreeItem = treeItemMap.get(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_HISTORY, apiGroupVoMap));
+			// Determine the parent tree item
+			TreeItem<ApiModelVo> rootTreeItem = null;
+			TreeItem<ApiModelVo> selectedItem = treeView.getSelectionModel().getSelectedItem();
+			
 			if (isCloneItem && tabId != null) {
+				// If cloning, insert after the source item in the same parent
 				TreeItem<ApiModelVo> sourceTreeItem = findTreeItemById(tabId);
-				if (sourceTreeItem != null) {
+				if (sourceTreeItem != null && sourceTreeItem.getParent() != null) {
+					rootTreeItem = sourceTreeItem.getParent();
 					int sourceIndex = rootTreeItem.getChildren().indexOf(sourceTreeItem);
 					rootTreeItem.getChildren().add(sourceIndex + 1, newTreeItem);
+					// Set the groupId for the cloned item
+					if (rootTreeItem.getValue() != null) {
+						apiModelVo.setGroupId(rootTreeItem.getValue().getId());
+					}
 				} else {
+					rootTreeItem = treeItemMap.get(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_HISTORY, apiGroupVoMap));
 					rootTreeItem.getChildren().add(newTreeItem);
 				}
 			} else {
+				// For new requests, add to selected parent or History if nothing selected
+				if (selectedItem != null) {
+					// Check if selected item is a group (by checking if it's in treeItemMap)
+					boolean isGroup = treeItemMap.containsValue(selectedItem);
+					
+					if (isGroup && selectedItem.getValue() != null) {
+						// Skip Auth Configurations special tree
+						if (!CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS.equals(selectedItem.getValue().getName())) {
+							rootTreeItem = selectedItem;
+						}
+					} else if (selectedItem.getParent() != null) {
+						// If selected item is a child, check if parent is Auth Configurations
+						TreeItem<ApiModelVo> parentItem = selectedItem.getParent();
+						if (parentItem.getValue() != null && 
+							!CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS.equals(parentItem.getValue().getName())) {
+							rootTreeItem = parentItem;
+						}
+					}
+				}
+				
+				// Default to History if no valid parent found
+				if (rootTreeItem == null) {
+					rootTreeItem = treeItemMap.get(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_HISTORY, apiGroupVoMap));
+				}
+				
 				rootTreeItem.getChildren().add(newTreeItem);
+				
+				// Set the groupId for the new item
+				if (rootTreeItem.getValue() != null) {
+					apiModelVo.setGroupId(rootTreeItem.getValue().getId());
+				}
 			}
 			
 			treeView.getSelectionModel().select(newTreeItem);
