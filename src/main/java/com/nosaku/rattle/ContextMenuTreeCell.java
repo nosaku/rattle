@@ -37,6 +37,7 @@ public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 	private ContextMenu authChildMenu = new ContextMenu();
 	private ContextMenu authParentMenu = new ContextMenu();
 	private ContextMenu groupMenu = new ContextMenu();
+	private ContextMenu historyGroupMenu = new ContextMenu();
 	private App app;
 
 	public ContextMenuTreeCell(App app) {
@@ -153,8 +154,15 @@ public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 				// Check if this is an auth-related item
 				boolean isAuthGroup = app.isAuthConfigurationGroup(getTreeItem());
 				
+				// Check if this is the History group
+				boolean isHistoryGroup = isGroup && CommonConstants.GROUP_NAME_HISTORY.equalsIgnoreCase(item.getName());
+				
+				// Check if this is the History group (no context menu)
+				if (isHistoryGroup) {
+					setContextMenu(historyGroupMenu);
+				}
 				// Check if this is an auth group (including sub-groups)
-				if (isGroup && isAuthGroup) {
+				else if (isGroup && isAuthGroup) {
 					setContextMenu(authParentMenu);
 				}
 				// Check if this is an auth config child (not a group)
