@@ -257,16 +257,12 @@ public class TabManager {
 			} else {
 				// For new requests, add to selected parent or History if nothing selected
 				if (selectedItem != null) {
-					// Check if selected item is a group (by checking if it's in treeItemMap)
 					boolean isGroup = treeItemMap.containsValue(selectedItem);
-					
 					if (isGroup && selectedItem.getValue() != null) {
-						// Skip Auth Configurations special tree
 						if (!CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS.equals(selectedItem.getValue().getName())) {
 							rootTreeItem = selectedItem;
 						}
 					} else if (selectedItem.getParent() != null) {
-						// If selected item is a child, check if parent is Auth Configurations
 						TreeItem<ApiModelVo> parentItem = selectedItem.getParent();
 						if (parentItem.getValue() != null && 
 							!CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS.equals(parentItem.getValue().getName())) {
