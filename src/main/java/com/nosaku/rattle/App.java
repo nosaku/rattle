@@ -89,7 +89,7 @@ import javafx.stage.Stage;
 import javafx.util.Callback;
 
 public class App extends Application {
-	private double lastDividerPosition = 0.2;
+	private final double lastDividerPosition = 0.2;
 	private AppVo appVo;
 	private Map<String, ApiModelVo> apiModelVoMap = new LinkedHashMap<>();
 	private Map<String, ApiGroupVo> apiGroupVoMap = new LinkedHashMap<>();
@@ -950,6 +950,10 @@ public class App extends Application {
 
 	public void clearAllAuthTokens() {
 		OAuthTokenStore.getInstance().clearAllTokens();
+	}
+	
+	public boolean isGroupTreeItem(TreeItem<ApiModelVo> treeItem) {
+		return treeItemMap.containsValue(treeItem);
 	}
 
 	private VBox createAuthSelectionContent(ApiModelVo apiModelVo, Tab currentTab) {

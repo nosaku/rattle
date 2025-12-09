@@ -115,6 +115,16 @@ public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 
 		if (!isEditing()) {
 			if (getTreeItem() != null && !empty && item != null) {
+				// Check if this is a group (parent) item by checking if it's in the app's treeItemMap
+				boolean isGroup = app.isGroupTreeItem(getTreeItem());
+				
+				// Apply bold styling to group items
+				if (isGroup) {
+					setStyle("-fx-font-weight: bold;");
+				} else {
+					setStyle("");
+				}
+				
 				// Check if this is the auth parent item
 				if (CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS.equals(item.getName())
 						&& getTreeItem().getParent() != null && getTreeItem().getParent().getValue() != null
@@ -139,6 +149,7 @@ public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 				}
 			} else {
 				setContextMenu(null);
+				setStyle("");
 			}
 			getTreeView().setEditable(false);
 		}
