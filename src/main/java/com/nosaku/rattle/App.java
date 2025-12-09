@@ -1141,79 +1141,131 @@ public class App extends Application {
 		authBox.setPadding(new Insets(10));
 
 		Label authLabel = new Label("Authentication:");
-		ComboBox<String> authComboBox = new ComboBox<>();
-		authComboBox.setPromptText("Select authentication");
-		authComboBox.setPrefWidth(300);
+		authLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
 
-		// Build list of auth configurations with display names including group hierarchy
-		Map<String, String> authConfigMap = new LinkedHashMap<>(); // id -> display name with path
-		authConfigMap.put("None", "None");
+		// Create tree view for auth configs
+		TreeItem<String> rootItem = new TreeItem<>("Auth Configurations");
+		rootItem.setExpanded(true);
 
-		// Get all auth configs from the tree recursively
+		// Add "None" option
+		TreeItem<String> noneItem = new TreeItem<>("None");
+		rootItem.getChildren().add(noneItem);
+
+		// Build tree structure from auth configurations
 		TreeItem<ApiModelVo> authConfigRoot = treeItemMap.get(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS, apiGroupVoMap));
-		collectAuthConfigsWithPath(authConfigRoot, authConfigMap, "");
+		Map<String, String> authConfigIdMap = new LinkedHashMap<>(); // tree item value -> auth config ID
+		buildAuthConfigTree(authConfigRoot, rootItem, authConfigIdMap);
 
-		authComboBox.setItems(FXCollections.observableArrayList(authConfigMap.values()));
+		TreeView<String> authTreeView = new TreeView<>(rootItem);
+		authTreeView.setShowRoot(false);
+		authTreeView.setPrefHeight(200);
+		authTreeView.setMaxHeight(300);
 
-		// Set current selection - find name by ID
-		String displayName = "None";
-		if (StringUtil.nonEmptyStr(apiModelVo.getAuthConfigId())) {
-			for (Map.Entry<String, String> entry : authConfigMap.entrySet()) {
-				if (entry.getKey().equals(apiModelVo.getAuthConfigId())) {
-					displayName = entry.getValue();
-					break;
-				}
+		// Custom cell factory with radio buttons
+		authTreeView.setCellFactory(tv -> new TreeCell<String>() {
+			private javafx.scene.control.RadioButton radioButton;
+
+			{
+				radioButton = new javafx.scene.control.RadioButton();
+				radioButton.setOnAction(e -> {
+					if (radioButton.isSelected()) {
+						TreeItem<String> item = getTreeItem();
+						if (item != null) {
+							String authConfigId = authConfigIdMap.get(item.getValue());
+							if (authConfigId != null) {
+								apiModelVo.setAuthConfigId("None".equals(authConfigId) ? null : authConfigId);
+								if (currentTab != null) {
+									tabManager.markTabAsModified(currentTab);
+								}
+								// Refresh all cells to update radio button selection
+								authTreeView.refresh();
+							}
+						}
+					}
+				});
 			}
-		}
-		authComboBox.setValue(displayName);
 
-		authComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
-			if (currentTab != null && !newVal.equals(oldVal)) {
-				tabManager.markTabAsModified(currentTab);
-
-				// Find ID by name
-				String selectedId = null;
-				for (Map.Entry<String, String> entry : authConfigMap.entrySet()) {
-					if (entry.getValue().equals(newVal)) {
-						selectedId = entry.getKey();
-						break;
+			@Override
+			protected void updateItem(String item, boolean empty) {
+				super.updateItem(item, empty);
+				if (empty || item == null) {
+					setText(null);
+					setGraphic(null);
+				} else {
+					setText(item);
+					TreeItem<String> treeItem = getTreeItem();
+					
+					// Only show radio button for leaf items (actual auth configs, not groups)
+					if (treeItem != null && treeItem.getChildren().isEmpty()) {
+						String authConfigId = authConfigIdMap.get(item);
+						String currentAuthId = apiModelVo.getAuthConfigId();
+						
+						// Check if this item should be selected
+						boolean isSelected = (authConfigId != null && authConfigId.equals("None") && currentAuthId == null) ||
+											 (authConfigId != null && authConfigId.equals(currentAuthId));
+						
+						radioButton.setSelected(isSelected);
+						setGraphic(radioButton);
+					} else {
+						setGraphic(null);
 					}
 				}
-				apiModelVo.setAuthConfigId("None".equals(selectedId) ? null : selectedId);
 			}
 		});
 
-		authBox.getChildren().addAll(authLabel, authComboBox);
+		// Expand all nodes by default
+		expandAllNodes(rootItem);
+
+		ScrollPane treeScrollPane = new ScrollPane(authTreeView);
+		treeScrollPane.setFitToWidth(true);
+		treeScrollPane.setFitToHeight(true);
+
+		authBox.getChildren().addAll(authLabel, treeScrollPane);
 
 		return authBox;
 	}
-	
+
 	/**
-	 * Recursively collects auth configs with their full group path
+	 * Recursively builds a tree structure for auth config selection
 	 */
-	private void collectAuthConfigsWithPath(TreeItem<ApiModelVo> node, Map<String, String> authConfigMap, String parentPath) {
-		if (node == null) {
+	private void buildAuthConfigTree(TreeItem<ApiModelVo> sourceNode, TreeItem<String> targetNode, Map<String, String> authConfigIdMap) {
+		if (sourceNode == null) {
 			return;
 		}
-		
-		for (TreeItem<ApiModelVo> child : node.getChildren()) {
+
+		for (TreeItem<ApiModelVo> child : sourceNode.getChildren()) {
 			if (child.getValue() != null) {
 				boolean isGroup = treeItemMap.containsValue(child);
-				
+
 				if (isGroup) {
-					// This is a subgroup, recurse with updated path
-					String newPath = parentPath.isEmpty() ? child.getValue().getName() : parentPath + " → " + child.getValue().getName();
-					collectAuthConfigsWithPath(child, authConfigMap, newPath);
+					// This is a subgroup, create a tree item and recurse
+					TreeItem<String> groupItem = new TreeItem<>(child.getValue().getName());
+					groupItem.setExpanded(true);
+					targetNode.getChildren().add(groupItem);
+					buildAuthConfigTree(child, groupItem, authConfigIdMap);
 				} else if (child.getValue().isAuthConfig() && child.getValue().getId() != null && child.getValue().getName() != null) {
 					// This is an auth config item
-					String displayName = parentPath.isEmpty() 
-						? child.getValue().getName() 
-						: parentPath + " → " + child.getValue().getName();
-					authConfigMap.put(child.getValue().getId(), displayName);
+					TreeItem<String> authItem = new TreeItem<>(child.getValue().getName());
+					targetNode.getChildren().add(authItem);
+					authConfigIdMap.put(child.getValue().getName(), child.getValue().getId());
 				}
 			}
 		}
 	}
+
+	/**
+	 * Expands all nodes in a tree
+	 */
+	private void expandAllNodes(TreeItem<String> item) {
+		if (item != null && !item.isLeaf()) {
+			item.setExpanded(true);
+			for (TreeItem<String> child : item.getChildren()) {
+				expandAllNodes(child);
+			}
+		}
+	}
+	
+
 
 	private VBox createAuthConfigContent(ApiModelVo apiModelVo, Tab currentTab) {
 		VBox authBox = new VBox(10);
