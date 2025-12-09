@@ -502,13 +502,15 @@ public class App extends Application {
 		TabPane topTabs = new TabPane();
 
 		// Add Auth tab (different content for auth configs vs regular requests)
+		Tab authTab = new Tab("Auth");
 		if (apiModelVo.isAuthConfig()) {
 			VBox authTabContent = createAuthConfigContent(apiModelVo, finalCurrentTab);
-			topTabs.getTabs().add(new Tab("Auth", authTabContent));
+			authTab.setContent(authTabContent);
 		} else {
 			VBox authSelectionContent = createAuthSelectionContent(apiModelVo, finalCurrentTab);
-			topTabs.getTabs().add(new Tab("Auth", authSelectionContent));
+			authTab.setContent(authSelectionContent);
 		}
+		topTabs.getTabs().add(authTab);
 
 		topTabs.getTabs().add(new Tab("Params", paramsScrollPane));
 		topTabs.getTabs().add(new Tab("Headers", headersScrollPane));
@@ -1143,23 +1145,50 @@ public class App extends Application {
 		Label authLabel = new Label("Authentication:");
 		authLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
 
-		// Create tree view for auth configs
-		TreeItem<String> rootItem = new TreeItem<>("Auth Configurations");
-		rootItem.setExpanded(true);
-
-		// Add "None" option
-		TreeItem<String> noneItem = new TreeItem<>("None");
-		rootItem.getChildren().add(noneItem);
-
-		// Build tree structure from auth configurations
-		TreeItem<ApiModelVo> authConfigRoot = treeItemMap.get(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS, apiGroupVoMap));
+		// Store references for rebuilding
 		Map<String, String> authConfigIdMap = new LinkedHashMap<>(); // tree item value -> auth config ID
-		buildAuthConfigTree(authConfigRoot, rootItem, authConfigIdMap);
-
+		TreeItem<String> rootItem = new TreeItem<>("Auth Configurations");
 		TreeView<String> authTreeView = new TreeView<>(rootItem);
 		authTreeView.setShowRoot(false);
 		authTreeView.setPrefHeight(200);
 		authTreeView.setMaxHeight(300);
+
+		// Method to rebuild the tree
+		Runnable rebuildTree = () -> {
+			rootItem.getChildren().clear();
+			authConfigIdMap.clear();
+			
+			// Add "None" option
+			TreeItem<String> noneItem = new TreeItem<>("None");
+			rootItem.getChildren().add(noneItem);
+			authConfigIdMap.put("None", "None");
+
+			// Build tree structure from auth configurations
+			TreeItem<ApiModelVo> authConfigRoot = treeItemMap.get(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS, apiGroupVoMap));
+			buildAuthConfigTree(authConfigRoot, rootItem, authConfigIdMap);
+			
+			// Expand all nodes by default
+			rootItem.setExpanded(true);
+			expandAllNodes(rootItem);
+		};
+
+		// Initial build
+		rebuildTree.run();
+		
+		// Add listener to refresh when this VBox becomes visible (when Auth tab is selected)
+		authBox.sceneProperty().addListener((obs, oldScene, newScene) -> {
+			if (newScene != null) {
+				// Rebuild when added to scene
+				rebuildTree.run();
+			}
+		});
+		
+		// Also refresh when parent changes (tab selection)
+		authBox.parentProperty().addListener((obs, oldParent, newParent) -> {
+			if (newParent != null) {
+				Platform.runLater(() -> rebuildTree.run());
+			}
+		});
 
 		// Custom cell factory with radio buttons
 		authTreeView.setCellFactory(tv -> new TreeCell<String>() {
@@ -1213,14 +1242,19 @@ public class App extends Application {
 			}
 		});
 
-		// Expand all nodes by default
-		expandAllNodes(rootItem);
+		// Add refresh button
+		Button refreshButton = new Button("Refresh");
+		refreshButton.setOnAction(e -> rebuildTree.run());
+		
+		HBox headerBox = new HBox(10);
+		headerBox.setAlignment(Pos.CENTER_LEFT);
+		headerBox.getChildren().addAll(authLabel, refreshButton);
 
 		ScrollPane treeScrollPane = new ScrollPane(authTreeView);
 		treeScrollPane.setFitToWidth(true);
 		treeScrollPane.setFitToHeight(true);
 
-		authBox.getChildren().addAll(authLabel, treeScrollPane);
+		authBox.getChildren().addAll(headerBox, treeScrollPane);
 
 		return authBox;
 	}

@@ -109,7 +109,7 @@ public class TabManager {
 	 * Adds a new auth configuration tab to the tab pane with specific parent group
 	 */
 	public Tab addNewAuthConfigTab(String tabId, boolean isAddTreeItem, boolean isCloneItem, String parentGroupId) {
-		return addNewTab(tabId, isAddTreeItem, isCloneItem, parentGroupId, true);
+		return addNewTab(tabId, isAddTreeItem, isCloneItem, null, true);
 	}
 	
 	/**
@@ -260,6 +260,11 @@ public class TabManager {
 				if (rootTreeItem.getValue() != null) {
 					apiModelVo.setGroupId(rootTreeItem.getValue().getId());
 				}
+			}
+			
+			// Ensure parent tree item is expanded so the new item is visible
+			if (rootTreeItem != null) {
+				rootTreeItem.setExpanded(true);
 			}
 			
 			treeView.getSelectionModel().select(newTreeItem);
