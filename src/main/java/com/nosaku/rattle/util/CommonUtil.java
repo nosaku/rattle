@@ -41,4 +41,8 @@ public class CommonUtil {
 	public static boolean isGroupExists(String groupName, Map<String, ApiGroupVo> apiGroupVoMap) {
 		return apiGroupVoMap.values().stream().anyMatch(group -> group.getName().equalsIgnoreCase(groupName));
 	}
+	
+	public static boolean isLinux() {
+		return "Linux".equalsIgnoreCase(System.getProperty("os.name"));
+	}
 }

@@ -85,6 +85,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 
@@ -268,7 +269,7 @@ public class App extends Application {
 		stage.setTitle("Rattle");
 		Image icon = new Image("rattlesnake.png");
 		stage.getIcons().add(icon);
-		stage.setMaximized(true);
+		// stage.setMaximized(true);
 		stage.setScene(scene);
 
 		stage.setOnCloseRequest(event -> {
@@ -870,6 +871,7 @@ public class App extends Application {
 		dialog.setHeaderText("Create a new API group");
 		dialog.setContentText("Group name:");
 		dialog.initOwner(centerTabs.getScene() != null ? centerTabs.getScene().getWindow() : null);
+		dialog.initModality(Modality.NONE);
 
 		dialog.showAndWait().ifPresent(groupName -> {
 			if (groupName == null || groupName.trim().isEmpty()) {
