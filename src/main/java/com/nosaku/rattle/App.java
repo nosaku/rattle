@@ -686,6 +686,73 @@ public class App extends Application {
 		tabManager.addNewTab(treeItem.getValue().getId(), true, true);
 	}
 
+	public void deleteGroup(TreeItem<ApiModelVo> treeItem) {
+		if (treeItem == null || treeItem.getValue() == null) {
+			return;
+		}
+		ApiModelVo value = treeItem.getValue();
+		// Prevent deletion of History and Auth Configurations groups
+		if (CommonConstants.GROUP_NAME_HISTORY.equalsIgnoreCase(value.getName()) ||
+			CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS.equalsIgnoreCase(value.getName())) {
+			return;
+		}
+
+		// Recursively delete all children
+		deleteGroupChildren(treeItem);
+
+		// Remove from parent
+		TreeItem<ApiModelVo> parent = treeItem.getParent();
+		if (parent != null) {
+			parent.getChildren().remove(treeItem);
+		}
+
+		// Remove from maps
+		if (value.getId() != null) {
+			treeItemMap.remove(value.getId());
+			apiGroupVoMap.remove(value.getId());
+		}
+		saveApiModelVoMapAsJson();
+	}
+
+	private void deleteGroupChildren(TreeItem<ApiModelVo> groupItem) {
+		if (groupItem == null) {
+			return;
+		}
+
+		// Create a copy of children list to avoid concurrent modification
+		var children = new java.util.ArrayList<>(groupItem.getChildren());
+		for (TreeItem<ApiModelVo> child : children) {
+			if (child.getValue() != null) {
+				boolean isGroup = treeItemMap.containsValue(child);
+				if (isGroup) {
+					// Recursively delete subgroup
+					deleteGroupChildren(child);
+					if (child.getValue().getId() != null) {
+						treeItemMap.remove(child.getValue().getId());
+						apiGroupVoMap.remove(child.getValue().getId());
+					}
+				} else {
+					// Delete API item or auth config
+					String itemId = child.getValue().getId();
+					if (itemId != null) {
+						// Close tab if open
+						Tab toClose = null;
+						for (Tab t : centerTabs.getTabs()) {
+							if (t.getId().equals(itemId)) {
+								toClose = t;
+								break;
+							}
+						}
+						if (toClose != null) {
+							centerTabs.getTabs().remove(toClose);
+						}
+						apiModelVoMap.remove(itemId);
+					}
+				}
+			}
+		}
+	}
+
 	public void deleteTreeItem(TreeItem<ApiModelVo> treeItem) {
 		if (treeItem == null || treeItem.getValue() == null) {
 			return;

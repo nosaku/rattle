@@ -38,6 +38,9 @@ public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 	private ContextMenu authParentMenu = new ContextMenu();
 	private ContextMenu groupMenu = new ContextMenu();
 	private ContextMenu historyGroupMenu = new ContextMenu();
+	private MenuItem renameAuthGroupItem;
+	private MenuItem deleteAuthGroupItem;
+	private MenuItem clearAllTokensItem;
 	private App app;
 
 	public ContextMenuTreeCell(App app) {
@@ -102,13 +105,33 @@ public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 				app.addSubGroup(getTreeItem());
 			}
 		});
-		MenuItem clearAllTokensItem = new MenuItem("Clear All Tokens");
+		renameAuthGroupItem = new MenuItem("Rename");
+		renameAuthGroupItem.setOnAction(event -> {
+			getTreeView().setEditable(true);
+			startEdit();
+		});
+		// Note: renameAuthGroupItem is added dynamically in updateItem() for subgroups only
+		deleteAuthGroupItem = new MenuItem("Delete");
+		deleteAuthGroupItem.setOnAction(event -> {
+			if (getTreeItem() != null) {
+				app.deleteGroup(getTreeItem());
+			}
+		});
+		// Note: deleteAuthGroupItem is added dynamically in updateItem() for subgroups only
+		clearAllTokensItem = new MenuItem("Clear All Tokens");
 		authParentMenu.getItems().add(clearAllTokensItem);
 		clearAllTokensItem.setOnAction(event -> {
 			app.clearAllAuthTokens();
 		});
 
 		// Group menu items (for regular groups, not Auth Configurations)
+		MenuItem newRequestItem = new MenuItem("New Request");
+		groupMenu.getItems().add(newRequestItem);
+		newRequestItem.setOnAction(event -> {
+			if (getTreeItem() != null) {
+				app.addNewRequestToGroup(getTreeItem());
+			}
+		});
 		MenuItem addGroupItem = new MenuItem("Add Group");
 		groupMenu.getItems().add(addGroupItem);
 		addGroupItem.setOnAction(event -> {
@@ -121,6 +144,22 @@ public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 		renameGroupItem.setOnAction(event -> {
 			getTreeView().setEditable(true);
 			startEdit();
+		});
+		MenuItem deleteGroupItem = new MenuItem("Delete");
+		groupMenu.getItems().add(deleteGroupItem);
+		deleteGroupItem.setOnAction(event -> {
+			if (getTreeItem() != null) {
+				app.deleteGroup(getTreeItem());
+			}
+		});
+		
+		// History group menu items
+		MenuItem historyNewRequestItem = new MenuItem("New Request");
+		historyGroupMenu.getItems().add(historyNewRequestItem);
+		historyNewRequestItem.setOnAction(event -> {
+			if (getTreeItem() != null) {
+				app.addNewRequestToGroup(getTreeItem());
+			}
 		});
 
 		setOnMouseClicked(new EventHandler<MouseEvent>() {
@@ -156,6 +195,32 @@ public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 				
 				// Check if this is the History group
 				boolean isHistoryGroup = isGroup && CommonConstants.GROUP_NAME_HISTORY.equalsIgnoreCase(item.getName());
+				
+				// Check if this is the root Auth Configurations group
+				boolean isRootAuthGroup = isGroup && CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS.equalsIgnoreCase(item.getName());
+				
+				// Show/hide rename and delete menu items for auth groups based on whether it's root or subgroup
+				if (isGroup && isAuthGroup && !isRootAuthGroup) {
+					// This is an auth subgroup - show rename and delete options
+					if (!authParentMenu.getItems().contains(renameAuthGroupItem)) {
+						// Insert rename before "Clear All Tokens"
+						int clearAllIndex = authParentMenu.getItems().indexOf(clearAllTokensItem);
+						if (clearAllIndex >= 0) {
+							authParentMenu.getItems().add(clearAllIndex, renameAuthGroupItem);
+						}
+					}
+					if (!authParentMenu.getItems().contains(deleteAuthGroupItem)) {
+						// Insert delete before "Clear All Tokens"
+						int clearAllIndex = authParentMenu.getItems().indexOf(clearAllTokensItem);
+						if (clearAllIndex >= 0) {
+							authParentMenu.getItems().add(clearAllIndex, deleteAuthGroupItem);
+						}
+					}
+				} else {
+					// This is root Auth Configurations - hide rename and delete options
+					authParentMenu.getItems().remove(renameAuthGroupItem);
+					authParentMenu.getItems().remove(deleteAuthGroupItem);
+				}
 				
 				// Check if this is the History group (no context menu)
 				if (isHistoryGroup) {
