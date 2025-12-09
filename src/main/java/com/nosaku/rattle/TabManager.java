@@ -193,8 +193,20 @@ public class TabManager {
 						apiModelVo.setGroupId(rootTreeItem.getValue().getId());
 					}
 				} else {
-					rootTreeItem = treeItemMap.get(CommonUtil.getGroupId(defaultGroupName, apiGroupVoMap));
-					rootTreeItem.getChildren().add(newTreeItem);
+					// Source item not in tree (might be in an open tab), use the source's groupId if available
+					ApiModelVo sourceModel = apiModelVoMap.get(tabId);
+					if (sourceModel != null && sourceModel.getGroupId() != null) {
+						rootTreeItem = treeItemMap.get(sourceModel.getGroupId());
+						if (rootTreeItem != null) {
+							rootTreeItem.getChildren().add(newTreeItem);
+							apiModelVo.setGroupId(sourceModel.getGroupId());
+						}
+					}
+					// Fallback to default group if source groupId not found
+					if (rootTreeItem == null) {
+						rootTreeItem = treeItemMap.get(CommonUtil.getGroupId(defaultGroupName, apiGroupVoMap));
+						rootTreeItem.getChildren().add(newTreeItem);
+					}
 				}
 			} else if (tabId != null && apiModelVo.getGroupId() != null) {
 				// If loading existing item with groupId (from initApp), use its saved group
