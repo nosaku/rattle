@@ -371,8 +371,8 @@ public class App extends Application {
 					}
 				} else {
 					TreeItem<ApiModelVo> newTreeItem = new TreeItem<>(apiModelVo);
-					String groupId = null;
-					if (apiModelVo.getGroupId() == null) {
+					String groupId = apiModelVo.getGroupId();
+					if (groupId == null) {
 						groupId = CommonUtil.getGroupId(CommonConstants.GROUP_NAME_HISTORY, apiGroupVoMap);
 					}
 					treeItemMap.get(groupId).getChildren().add(newTreeItem);
@@ -827,7 +827,13 @@ public class App extends Application {
 				ApiModelVo apiModelVo = entry.getValue().clone();
 				apiModelVo.setResponse(null);
 				apiModelVo.setConsoleLog(null);
-				if (apiModelVo.getGroupId() == null) {
+				
+				// Update groupId from tree structure (source of truth)
+				String groupIdFromTree = getGroupIdFromTree(apiModelVo.getId());
+				if (groupIdFromTree != null) {
+					apiModelVo.setGroupId(groupIdFromTree);
+				} else if (apiModelVo.getGroupId() == null) {
+					// Fallback to default groups if not in tree
 					if (apiModelVo.isAuthConfig()) {
 						apiModelVo.setGroupId(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS, apiGroupVoMap));
 					} else {
@@ -846,6 +852,42 @@ public class App extends Application {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+	
+	/**
+	 * Finds the groupId of an item by searching the tree structure
+	 */
+	private String getGroupIdFromTree(String itemId) {
+		if (itemId == null) {
+			return null;
+		}
+		return findGroupIdInTree(virtualRootItem, itemId);
+	}
+	
+	private String findGroupIdInTree(TreeItem<ApiModelVo> node, String itemId) {
+		if (node == null) {
+			return null;
+		}
+		
+		// Search in children
+		for (TreeItem<ApiModelVo> child : node.getChildren()) {
+			// Check if this child is the item we're looking for
+			if (child.getValue() != null && itemId.equals(child.getValue().getId())) {
+				// Found the item, return its parent's ID (which is the group)
+				if (node.getValue() != null && node.getValue().getId() != null) {
+					return node.getValue().getId();
+				}
+				return null;
+			}
+			
+			// Recursively search in this child's subtree
+			String result = findGroupIdInTree(child, itemId);
+			if (result != null) {
+				return result;
+			}
+		}
+		
+		return null;
 	}
 
 	private void openProxySettingsDialog() {
@@ -886,13 +928,13 @@ public class App extends Application {
 
 			String trimmedGroupName = groupName.trim();
 
-			// Check if group already exists
-			if (CommonUtil.isGroupExists(trimmedGroupName, apiGroupVoMap)) {
+			// Check if group already exists at the root level
+			if (CommonUtil.isGroupExists(trimmedGroupName, apiGroupVoMap, null)) {
 				Alert alert = new Alert(Alert.AlertType.ERROR);
 				alert.setTitle("Duplicate Group");
 				alert.setHeaderText("Group already exists");
 				alert.setContentText("A group with the name '" + trimmedGroupName
-						+ "' already exists. Please use a different name.");
+						+ "' already exists at this level. Please use a different name.");
 				alert.initOwner(centerTabs.getScene().getWindow());
 				alert.showAndWait();
 				return;
@@ -1045,13 +1087,13 @@ public class App extends Application {
 
 			String trimmedGroupName = groupName.trim();
 
-			// Check if group already exists
-			if (CommonUtil.isGroupExists(trimmedGroupName, apiGroupVoMap)) {
+			// Check if group already exists within the same parent
+			if (CommonUtil.isGroupExists(trimmedGroupName, apiGroupVoMap, parentGroupTreeItem.getValue().getId())) {
 				Alert alert = new Alert(Alert.AlertType.ERROR);
 				alert.setTitle("Duplicate Group");
 				alert.setHeaderText("Group already exists");
 				alert.setContentText("A group with the name '" + trimmedGroupName
-						+ "' already exists. Please use a different name.");
+						+ "' already exists at this level. Please use a different name.");
 				alert.initOwner(centerTabs.getScene().getWindow());
 				alert.showAndWait();
 				return;
