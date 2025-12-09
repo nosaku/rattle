@@ -26,7 +26,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import com.nosaku.rattle.util.CommonConstants;
+import com.nosaku.rattle.util.CommonUtil;
 import com.nosaku.rattle.util.StringUtil;
+import com.nosaku.rattle.vo.ApiGroupVo;
 import com.nosaku.rattle.vo.ApiModelVo;
 
 import javafx.application.Platform;
@@ -54,24 +57,25 @@ import javafx.scene.layout.VBox;
 public class TabManager {
 	
 	private final TabPane tabPane;
-	private final TreeItem<ApiModelVo> rootTreeItem;
-	private final TreeItem<ApiModelVo> authConfigTreeItem;
 	private final TreeView<ApiModelVo> treeView;
 	private final Map<String, ApiModelVo> apiModelVoMap;
+	private final Map<String, ApiGroupVo> apiGroupVoMap;
 	private final TabContentFactory contentFactory;
 	private final Runnable onSaveCallback;
+	Map<String, TreeItem<ApiModelVo>> treeItemMap;
 	
 	private int tabIndex;
 	private int authConfigIndex;
 	
-	public TabManager(TabPane tabPane, TreeItem<ApiModelVo> rootTreeItem, TreeItem<ApiModelVo> authConfigTreeItem,
-			TreeView<ApiModelVo> treeView, Map<String, ApiModelVo> apiModelVoMap, 
+	public TabManager(TabPane tabPane, Map<String, TreeItem<ApiModelVo>> treeItemMap,
+			TreeView<ApiModelVo> treeView, Map<String, ApiModelVo> apiModelVoMap,
+			Map<String, ApiGroupVo> apiGroupVoMap,
 			TabContentFactory contentFactory, Runnable onSaveCallback) {
 		this.tabPane = tabPane;
-		this.rootTreeItem = rootTreeItem;
-		this.authConfigTreeItem = authConfigTreeItem;
+		this.treeItemMap = treeItemMap;
 		this.treeView = treeView;
 		this.apiModelVoMap = apiModelVoMap;
+		this.apiGroupVoMap = apiGroupVoMap;
 		this.contentFactory = contentFactory;
 		this.onSaveCallback = onSaveCallback;
 		this.tabIndex = 0;
@@ -147,6 +151,7 @@ public class TabManager {
 		if (tabId == null || isAddTreeItem) {
 			TreeItem<ApiModelVo> newTreeItem = new TreeItem<>(apiModelVo);
 			
+			TreeItem<ApiModelVo> authConfigTreeItem = treeItemMap.get(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS, apiGroupVoMap));
 			// If cloning, insert after the source item
 			if (isCloneItem && tabId != null) {
 				TreeItem<ApiModelVo> sourceTreeItem = findTreeItemById(tabId, authConfigTreeItem);
@@ -231,6 +236,8 @@ public class TabManager {
 			TreeItem<ApiModelVo> newTreeItem = new TreeItem<>(apiModelVo);
 			
 			// If cloning, insert after the source item
+			// TODO add specific tree rather than history
+			TreeItem<ApiModelVo> rootTreeItem = treeItemMap.get(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_HISTORY, apiGroupVoMap));
 			if (isCloneItem && tabId != null) {
 				TreeItem<ApiModelVo> sourceTreeItem = findTreeItemById(tabId);
 				if (sourceTreeItem != null) {
@@ -543,17 +550,11 @@ public class TabManager {
 		if (id == null) {
 			return null;
 		}
-		// Search in rootTreeItem
-		for (TreeItem<ApiModelVo> item : rootTreeItem.getChildren()) {
+		
+		for (TreeItem<ApiModelVo> item : treeItemMap.values()) {
 			if (item.getValue() != null && id.equals(item.getValue().getId())) {
 				return item;
-			}
-		}
-		// Search in authConfigTreeItem
-		for (TreeItem<ApiModelVo> item : authConfigTreeItem.getChildren()) {
-			if (item.getValue() != null && id.equals(item.getValue().getId())) {
-				return item;
-			}
+			}			
 		}
 		return null;
 	}

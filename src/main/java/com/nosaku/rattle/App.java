@@ -90,15 +90,15 @@ import javafx.util.Callback;
 
 public class App extends Application {
 	private double lastDividerPosition = 0.2;
+	private AppVo appVo;
 	private Map<String, ApiModelVo> apiModelVoMap = new LinkedHashMap<>();
 	private Map<String, ApiGroupVo> apiGroupVoMap = new LinkedHashMap<>();
 	private TabPane centerTabs;
-	private TreeItem<ApiModelVo> rootTreeItem;
-	private TreeItem<ApiModelVo> authConfigTreeItem;
 	private TreeItem<ApiModelVo> virtualRootItem;
 	private TreeView<ApiModelVo> treeView;
 	private ProxySettingsVo proxySettings;
 	private TabManager tabManager;
+	private Map<String, TreeItem<ApiModelVo>> treeItemMap = new LinkedHashMap<>();
 
 	public App() {
 	}
@@ -109,6 +109,9 @@ public class App extends Application {
 
 	@Override
 	public void start(Stage stage) throws Exception {
+		readRattleFile();
+		initGroups();
+		
 		Label appTitle = new Label(CommonConstants.APP_TITLE);
 		appTitle.setFont(new Font("Arial", 14));
 
@@ -118,28 +121,24 @@ public class App extends Application {
 		footer.setPadding(new Insets(5, 10, 5, 10));
 		footer.setStyle("-fx-background-color: #f0f0f0;");
 
-		ApiModelVo historyTreeItem = new ApiModelVo();
-		historyTreeItem.setName(CommonConstants.GROUP_NAME_HISTORY);
-		rootTreeItem = new TreeItem<>(historyTreeItem);
-		rootTreeItem.setExpanded(true);
-
-		ApiModelVo authConfigParent = new ApiModelVo();
-		authConfigParent.setName(CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS);
-		authConfigTreeItem = new TreeItem<>(authConfigParent);
-		authConfigTreeItem.setExpanded(true);
-
-		// Create a virtual root to hold both trees
 		ApiModelVo virtualRoot = new ApiModelVo();
 		virtualRoot.setName("");
 		virtualRootItem = new TreeItem<>(virtualRoot);
 		virtualRootItem.setExpanded(true);
-		virtualRootItem.getChildren().addAll(rootTreeItem, authConfigTreeItem);
+		for (ApiGroupVo apiGroupVo : apiGroupVoMap.values()) {
+			ApiModelVo apiModelVo = new ApiModelVo();
+			apiModelVo.setName(apiGroupVo.getName());
+			TreeItem<ApiModelVo> treeItem = new TreeItem<>(apiModelVo);
+			treeItem.setExpanded(true);
+			virtualRootItem.getChildren().addAll(treeItem);
+			treeItemMap.put(apiGroupVo.getId(), treeItem);
+		}
 
 		centerTabs = new TabPane();
 		treeView = new TreeView<>(virtualRootItem);
 		treeView.setShowRoot(false); // Hide the virtual root
 
-		tabManager = new TabManager(centerTabs, rootTreeItem, authConfigTreeItem, treeView, apiModelVoMap,
+		tabManager = new TabManager(centerTabs, treeItemMap, treeView, apiModelVoMap, apiGroupVoMap,
 				tabId -> createApiTabContent(tabId), () -> saveApiModelVoMapAsJson());
 
 		// treeView.setEditable(true);
@@ -215,8 +214,8 @@ public class App extends Application {
 			}
 
 			@Override
-			public void onAddGroup() {
-				addGroupDialog();
+			public void onNewGroup() {
+				newGroupDialog();
 			}
 
 			@Override
@@ -283,11 +282,10 @@ public class App extends Application {
 		});
 
 		initApp();
-		initGroups();
 		stage.show();
 	}
 
-	private void initApp() {
+	private void readRattleFile() {
 		ObjectMapper mapper = new ObjectMapper();
 		File dir = new File(System.getProperty("user.home"), ".rattle");
 		if (!dir.exists()) {
@@ -297,60 +295,70 @@ public class App extends Application {
 		if (!inFile.exists()) {
 			return;
 		}
-		int lastTabIndex = 0;
 		try (FileReader in = new FileReader(inFile)) {
 			String json = new String(Files.readAllBytes(Paths.get(inFile.getAbsolutePath())));
-			AppVo appVo = mapper.readValue(json, AppVo.class);
-
-			if (appVo.getProxySettings() != null) {
-				this.proxySettings = appVo.getProxySettings();
-				ApiHelper.getInstance().setProxySettings(this.proxySettings);
-			}
-
-			List<ApiModelVo> apiModelVoList = appVo.getApiList();
-			Tab currentTab = null;
-			int lastAuthConfigIndex = 0;
-
-			for (ApiModelVo apiModelVo : apiModelVoList) {
-				apiModelVoMap.put(apiModelVo.getId(), apiModelVo);
-
-				if (apiModelVo.isAuthConfig()) {
-					// Handle auth configuration
-					if (apiModelVo.isTabOpen()) {
-						Tab tab = tabManager.addNewAuthConfigTab(apiModelVo.getId(), true, false);
-						if (tab != null && apiModelVo.isTabOpen() && apiModelVo.isCurrentTab()) {
-							currentTab = tab;
-						}
-					} else {
-						TreeItem<ApiModelVo> newTreeItem = new TreeItem<>(apiModelVo);
-						authConfigTreeItem.getChildren().add(newTreeItem);
-					}
-					if (apiModelVo.getTabNbr() > lastAuthConfigIndex) {
-						lastAuthConfigIndex = apiModelVo.getTabNbr();
-					}
-				} else {
-					// Handle API request
-					if (apiModelVo.isTabOpen()) {
-						Tab tab = tabManager.addNewTab(apiModelVo.getId(), true, false);
-						if (tab != null && apiModelVo.isTabOpen() && apiModelVo.isCurrentTab()) {
-							currentTab = tab;
-						}
-					} else {
-						TreeItem<ApiModelVo> newTreeItem = new TreeItem<>(apiModelVo);
-						rootTreeItem.getChildren().add(newTreeItem);
-					}
-					if (apiModelVo.getTabNbr() > lastTabIndex) {
-						lastTabIndex = apiModelVo.getTabNbr();
-					}
+			this.appVo = mapper.readValue(json, AppVo.class);
+			if (this.appVo.getApiList() != null) {
+				for (ApiModelVo apiModelVo : appVo.getApiList()) {
+					apiModelVoMap.put(apiModelVo.getId(), apiModelVo);
 				}
 			}
-			tabManager.setTabIndex(lastTabIndex);
-			tabManager.setAuthConfigIndex(lastAuthConfigIndex);
-			if (currentTab != null) {
-				centerTabs.getSelectionModel().select(currentTab);
+			if (this.appVo.getApiGroups() != null) {
+				for (ApiGroupVo apiGroupVo : appVo.getApiGroups()) {
+					apiGroupVoMap.put(apiGroupVo.getId(), apiGroupVo);
+				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
+		}
+	}
+	
+	private void initApp() {
+		int lastTabIndex = 0;
+		if (appVo.getProxySettings() != null) {
+			this.proxySettings = appVo.getProxySettings();
+			ApiHelper.getInstance().setProxySettings(this.proxySettings);
+		}
+
+		List<ApiModelVo> apiModelVoList = appVo.getApiList();
+		Tab currentTab = null;
+		int lastAuthConfigIndex = 0;
+
+		for (ApiModelVo apiModelVo : apiModelVoList) {
+			if (apiModelVo.isAuthConfig()) {
+				// Handle auth configuration
+				if (apiModelVo.isTabOpen()) {
+					Tab tab = tabManager.addNewAuthConfigTab(apiModelVo.getId(), true, false);
+					if (tab != null && apiModelVo.isTabOpen() && apiModelVo.isCurrentTab()) {
+						currentTab = tab;
+					}
+				} else {
+					TreeItem<ApiModelVo> newTreeItem = new TreeItem<>(apiModelVo);
+					treeItemMap.get(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS, apiGroupVoMap)).getChildren().add(newTreeItem);
+				}
+				if (apiModelVo.getTabNbr() > lastAuthConfigIndex) {
+					lastAuthConfigIndex = apiModelVo.getTabNbr();
+				}
+			} else {
+				// Handle API request
+				if (apiModelVo.isTabOpen()) {
+					Tab tab = tabManager.addNewTab(apiModelVo.getId(), true, false);
+					if (tab != null && apiModelVo.isTabOpen() && apiModelVo.isCurrentTab()) {
+						currentTab = tab;
+					}
+				} else {
+					TreeItem<ApiModelVo> newTreeItem = new TreeItem<>(apiModelVo);
+					treeItemMap.get(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_HISTORY, apiGroupVoMap)).getChildren().add(newTreeItem);
+				}
+				if (apiModelVo.getTabNbr() > lastTabIndex) {
+					lastTabIndex = apiModelVo.getTabNbr();
+				}
+			}
+		}
+		tabManager.setTabIndex(lastTabIndex);
+		tabManager.setAuthConfigIndex(lastAuthConfigIndex);
+		if (currentTab != null) {
+			centerTabs.getSelectionModel().select(currentTab);
 		}
 	}
 
@@ -783,9 +791,9 @@ public class App extends Application {
 				apiModelVo.setConsoleLog(null);
 				if (apiModelVo.getGroupId() == null) {
 					if (apiModelVo.isAuthConfig()) {
-						apiModelVo.setGroupId(getGroupId(CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS));
+						apiModelVo.setGroupId(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS, apiGroupVoMap));
 					} else {
-						apiModelVo.setGroupId(getGroupId(CommonConstants.GROUP_NAME_HISTORY));
+						apiModelVo.setGroupId(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_HISTORY, apiGroupVoMap));
 					}
 				}
 				apiModelVoList.add(apiModelVo);
@@ -819,9 +827,9 @@ public class App extends Application {
 		});
 	}
 
-	private void addGroupDialog() {
+	private void newGroupDialog() {
 		TextInputDialog dialog = new TextInputDialog();
-		dialog.setTitle("Add Group");
+		dialog.setTitle("New Group");
 		dialog.setHeaderText("Create a new API group");
 		dialog.setContentText("Group name:");
 		dialog.initOwner(centerTabs.getScene() != null ? centerTabs.getScene().getWindow() : null);
@@ -840,7 +848,7 @@ public class App extends Application {
 			String trimmedGroupName = groupName.trim();
 
 			// Check if group already exists
-			if (isGroupExists(trimmedGroupName)) {
+			if (CommonUtil.isGroupExists(trimmedGroupName, apiGroupVoMap)) {
 				Alert alert = new Alert(Alert.AlertType.ERROR);
 				alert.setTitle("Duplicate Group");
 				alert.setHeaderText("Group already exists");
@@ -948,7 +956,7 @@ public class App extends Application {
 		authConfigMap.put("None", "None");
 
 		// Get all auth configs from the tree
-		for (TreeItem<ApiModelVo> item : authConfigTreeItem.getChildren()) {
+		for (TreeItem<ApiModelVo> item : treeItemMap.get(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS, apiGroupVoMap)).getChildren()) {
 			if (item.getValue() != null && item.getValue().getId() != null && item.getValue().getName() != null) {
 				authConfigMap.put(item.getValue().getId(), item.getValue().getName());
 			}
@@ -1057,14 +1065,5 @@ public class App extends Application {
 		oAuth2Box.getChildren().addAll(instructionsLabel, infoLabel);
 
 		return oAuth2Box;
-	}
-
-	private String getGroupId(String groupName) {
-		return apiGroupVoMap.values().stream().filter(group -> groupName.equalsIgnoreCase(group.getName()))
-				.map(ApiGroupVo::getId).findFirst().orElse(null);
-	}
-
-	private boolean isGroupExists(String groupName) {
-		return apiGroupVoMap.values().stream().anyMatch(group -> group.getName().equalsIgnoreCase(groupName));
 	}
 }

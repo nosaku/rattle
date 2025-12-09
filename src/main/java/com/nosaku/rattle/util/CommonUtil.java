@@ -21,11 +21,24 @@
  */
 package com.nosaku.rattle.util;
 
+import java.util.Map;
+
+import com.nosaku.rattle.vo.ApiGroupVo;
+
 public class CommonUtil {
 	public static String getStackTraceAsString(Throwable throwable) {
 		java.io.StringWriter sw = new java.io.StringWriter();
 		java.io.PrintWriter pw = new java.io.PrintWriter(sw);
 		throwable.printStackTrace(pw);
 		return sw.toString();
+	}
+
+	public static String getGroupId(String groupName, Map<String, ApiGroupVo> apiGroupVoMap) {
+		return apiGroupVoMap.values().stream().filter(group -> groupName.equalsIgnoreCase(group.getName()))
+				.map(ApiGroupVo::getId).findFirst().orElse(null);
+	}
+
+	public static boolean isGroupExists(String groupName, Map<String, ApiGroupVo> apiGroupVoMap) {
+		return apiGroupVoMap.values().stream().anyMatch(group -> group.getName().equalsIgnoreCase(groupName));
 	}
 }
