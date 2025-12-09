@@ -36,6 +36,7 @@ public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 	private ContextMenu childMenu = new ContextMenu();
 	private ContextMenu authChildMenu = new ContextMenu();
 	private ContextMenu authParentMenu = new ContextMenu();
+	private ContextMenu groupMenu = new ContextMenu();
 	private App app;
 
 	public ContextMenuTreeCell(App app) {
@@ -97,6 +98,21 @@ public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 			app.clearAllAuthTokens();
 		});
 
+		// Group menu items (for regular groups, not Auth Configurations)
+		MenuItem addGroupItem = new MenuItem("Add Group");
+		groupMenu.getItems().add(addGroupItem);
+		addGroupItem.setOnAction(event -> {
+			if (getTreeItem() != null) {
+				app.addSubGroup(getTreeItem());
+			}
+		});
+		MenuItem renameGroupItem = new MenuItem("Rename");
+		groupMenu.getItems().add(renameGroupItem);
+		renameGroupItem.setOnAction(event -> {
+			getTreeView().setEditable(true);
+			startEdit();
+		});
+
 		setOnMouseClicked(new EventHandler<MouseEvent>() {
 			@Override
 			public void handle(MouseEvent event) {
@@ -137,6 +153,10 @@ public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 						&& CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS
 								.equals(getTreeItem().getParent().getValue().getName())) {
 					setContextMenu(authChildMenu);
+				}
+				// Check if this is a regular group (not Auth Configurations)
+				else if (isGroup && !CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS.equals(item.getName())) {
+					setContextMenu(groupMenu);
 				}
 				// Show child menu for regular API request child items
 				else if (getTreeItem().getParent() != null && getTreeItem().getParent().getValue() != null

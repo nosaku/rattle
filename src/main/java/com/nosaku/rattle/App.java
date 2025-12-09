@@ -125,14 +125,28 @@ public class App extends Application {
 		virtualRoot.setName("");
 		virtualRootItem = new TreeItem<>(virtualRoot);
 		virtualRootItem.setExpanded(true);
+		
+		// First pass: create all group tree items
 		for (ApiGroupVo apiGroupVo : apiGroupVoMap.values()) {
 			ApiModelVo apiModelVo = new ApiModelVo();
 			apiModelVo.setName(apiGroupVo.getName());
 			apiModelVo.setId(apiGroupVo.getId());
 			TreeItem<ApiModelVo> treeItem = new TreeItem<>(apiModelVo);
 			treeItem.setExpanded(true);
-			virtualRootItem.getChildren().addAll(treeItem);
 			treeItemMap.put(apiGroupVo.getId(), treeItem);
+		}
+		
+		// Second pass: build the hierarchy
+		for (ApiGroupVo apiGroupVo : apiGroupVoMap.values()) {
+			TreeItem<ApiModelVo> treeItem = treeItemMap.get(apiGroupVo.getId());
+			if (apiGroupVo.getParentId() != null && treeItemMap.containsKey(apiGroupVo.getParentId())) {
+				// This is a sub-group, add it to its parent
+				TreeItem<ApiModelVo> parentTreeItem = treeItemMap.get(apiGroupVo.getParentId());
+				parentTreeItem.getChildren().add(treeItem);
+			} else {
+				// This is a top-level group, add it to virtual root
+				virtualRootItem.getChildren().add(treeItem);
+			}
 		}
 
 		centerTabs = new TabPane();
@@ -254,7 +268,7 @@ public class App extends Application {
 		stage.setTitle("Rattle");
 		Image icon = new Image("rattlesnake.png");
 		stage.getIcons().add(icon);
-		// stage.setMaximized(true); // TODO
+		stage.setMaximized(true);
 		stage.setScene(scene);
 
 		stage.setOnCloseRequest(event -> {
@@ -637,15 +651,26 @@ public class App extends Application {
 		// event.getTreeItem().setValue(existingModel);
 		treeView.refresh();
 
-		for (Tab tab : centerTabs.getTabs()) {
-			if (tab.getId().equals(existingModel.getId())) {
-				if (tab.getText().lastIndexOf(" *") != -1) {
-					tab.setText(tabManager.truncateTabTitle(newName) + " *");
-				} else {
-					tab.setText(tabManager.truncateTabTitle(newName));
-					tabManager.saveTab(tab);
+		// Check if this is a group and update the ApiGroupVo
+		if (isGroupTreeItem(event.getTreeItem())) {
+			ApiGroupVo groupVo = apiGroupVoMap.get(existingModel.getId());
+			if (groupVo != null) {
+				groupVo.setName(newName);
+			}
+			// Save the changes
+			saveApiModelVoMapAsJson();
+		} else {
+			// Handle regular API request items
+			for (Tab tab : centerTabs.getTabs()) {
+				if (tab.getId().equals(existingModel.getId())) {
+					if (tab.getText().lastIndexOf(" *") != -1) {
+						tab.setText(tabManager.truncateTabTitle(newName) + " *");
+					} else {
+						tab.setText(tabManager.truncateTabTitle(newName));
+						tabManager.saveTab(tab);
+					}
+					break;
 				}
-				break;
 			}
 		}
 	}
@@ -883,6 +908,12 @@ public class App extends Application {
 			TreeItem<ApiModelVo> groupTreeItem = new TreeItem<>(groupVo);
 			groupTreeItem.setExpanded(true);
 			virtualRootItem.getChildren().add(groupTreeItem);
+			
+			// Add to treeItemMap so it's recognized as a group
+			treeItemMap.put(newGroup.getId(), groupTreeItem);
+			
+			// Save the changes
+			saveApiModelVoMapAsJson();
 		});
 	}
 
@@ -954,6 +985,70 @@ public class App extends Application {
 	
 	public boolean isGroupTreeItem(TreeItem<ApiModelVo> treeItem) {
 		return treeItemMap.containsValue(treeItem);
+	}
+	
+	public void addSubGroup(TreeItem<ApiModelVo> parentGroupTreeItem) {
+		if (parentGroupTreeItem == null || parentGroupTreeItem.getValue() == null) {
+			return;
+		}
+		
+		TextInputDialog dialog = new TextInputDialog();
+		dialog.setTitle("New Sub-Group");
+		dialog.setHeaderText("Create a new sub-group under '" + parentGroupTreeItem.getValue().getName() + "'");
+		dialog.setContentText("Group name:");
+		dialog.initOwner(centerTabs.getScene() != null ? centerTabs.getScene().getWindow() : null);
+
+		dialog.showAndWait().ifPresent(groupName -> {
+			if (groupName == null || groupName.trim().isEmpty()) {
+				Alert alert = new Alert(Alert.AlertType.ERROR);
+				alert.setTitle("Invalid Group Name");
+				alert.setHeaderText("Group name cannot be empty");
+				alert.setContentText("Please enter a valid group name.");
+				alert.initOwner(centerTabs.getScene().getWindow());
+				alert.showAndWait();
+				return;
+			}
+
+			String trimmedGroupName = groupName.trim();
+
+			// Check if group already exists
+			if (CommonUtil.isGroupExists(trimmedGroupName, apiGroupVoMap)) {
+				Alert alert = new Alert(Alert.AlertType.ERROR);
+				alert.setTitle("Duplicate Group");
+				alert.setHeaderText("Group already exists");
+				alert.setContentText("A group with the name '" + trimmedGroupName
+						+ "' already exists. Please use a different name.");
+				alert.initOwner(centerTabs.getScene().getWindow());
+				alert.showAndWait();
+				return;
+			}
+
+			// Create new sub-group
+			ApiGroupVo newGroup = new ApiGroupVo();
+			newGroup.setId(UUID.randomUUID().toString());
+			newGroup.setName(trimmedGroupName);
+			newGroup.setParentId(parentGroupTreeItem.getValue().getId());
+
+			// Add to map
+			apiGroupVoMap.put(newGroup.getId(), newGroup);
+
+			// Create tree item for the sub-group
+			ApiModelVo groupVo = new ApiModelVo();
+			groupVo.setName(trimmedGroupName);
+			groupVo.setId(newGroup.getId());
+			TreeItem<ApiModelVo> groupTreeItem = new TreeItem<>(groupVo);
+			groupTreeItem.setExpanded(true);
+			
+			// Add as child of parent group
+			parentGroupTreeItem.getChildren().add(groupTreeItem);
+			parentGroupTreeItem.setExpanded(true);
+			
+			// Add to treeItemMap so it's recognized as a group
+			treeItemMap.put(newGroup.getId(), groupTreeItem);
+			
+			// Save the changes
+			saveApiModelVoMapAsJson();
+		});
 	}
 
 	private VBox createAuthSelectionContent(ApiModelVo apiModelVo, Tab currentTab) {
