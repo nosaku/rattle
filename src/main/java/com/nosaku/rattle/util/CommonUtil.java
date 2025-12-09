@@ -38,8 +38,11 @@ public class CommonUtil {
 				.map(ApiGroupVo::getId).findFirst().orElse(null);
 	}
 
-	public static boolean isGroupExists(String groupName, Map<String, ApiGroupVo> apiGroupVoMap) {
-		return apiGroupVoMap.values().stream().anyMatch(group -> group.getName().equalsIgnoreCase(groupName));
+	public static boolean isGroupExists(String groupName, Map<String, ApiGroupVo> apiGroupVoMap, String parentId) {
+		return apiGroupVoMap.values().stream()
+				.anyMatch(group -> group.getName().equalsIgnoreCase(groupName) 
+						&& ((parentId == null && group.getParentId() == null) 
+							|| (parentId != null && parentId.equals(group.getParentId()))));
 	}
 	
 	public static boolean isLinux() {
