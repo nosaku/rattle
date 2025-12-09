@@ -90,7 +90,16 @@ public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 		MenuItem newAuthConfigItem = new MenuItem("New Auth Configuration");
 		authParentMenu.getItems().add(newAuthConfigItem);
 		newAuthConfigItem.setOnAction(event -> {
-			app.addNewAuthConfig();
+			if (getTreeItem() != null) {
+				app.addNewAuthConfigToGroup(getTreeItem());
+			}
+		});
+		MenuItem addAuthGroupItem = new MenuItem("Add Group");
+		authParentMenu.getItems().add(addAuthGroupItem);
+		addAuthGroupItem.setOnAction(event -> {
+			if (getTreeItem() != null) {
+				app.addSubGroup(getTreeItem());
+			}
 		});
 		MenuItem clearAllTokensItem = new MenuItem("Clear All Tokens");
 		authParentMenu.getItems().add(clearAllTokensItem);
@@ -141,28 +150,23 @@ public class ContextMenuTreeCell extends TextFieldTreeCell<ApiModelVo> {
 					setStyle("");
 				}
 				
-				// Check if this is the auth parent item
-				if (CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS.equals(item.getName())
-						&& getTreeItem().getParent() != null && getTreeItem().getParent().getValue() != null
-						&& "".equals(getTreeItem().getParent().getValue().getName())) {
+				// Check if this is an auth-related item
+				boolean isAuthGroup = app.isAuthConfigurationGroup(getTreeItem());
+				
+				// Check if this is an auth group (including sub-groups)
+				if (isGroup && isAuthGroup) {
 					setContextMenu(authParentMenu);
 				}
-				// Check if this is an auth config child
-				else if (item.isAuthConfig() && getTreeItem().getParent() != null
-						&& getTreeItem().getParent().getValue() != null
-						&& CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS
-								.equals(getTreeItem().getParent().getValue().getName())) {
+				// Check if this is an auth config child (not a group)
+				else if (!isGroup && item.isAuthConfig() && isAuthGroup) {
 					setContextMenu(authChildMenu);
 				}
 				// Check if this is a regular group (not Auth Configurations)
-				else if (isGroup && !CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS.equals(item.getName())) {
+				else if (isGroup && !isAuthGroup) {
 					setContextMenu(groupMenu);
 				}
 				// Show child menu for regular API request child items
-				else if (getTreeItem().getParent() != null && getTreeItem().getParent().getValue() != null
-						&& !"".equals(getTreeItem().getParent().getValue().getName())
-						&& !CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS
-								.equals(getTreeItem().getParent().getValue().getName())) {
+				else if (!isGroup && !item.isAuthConfig() && !isAuthGroup) {
 					setContextMenu(childMenu);
 				} else {
 					setContextMenu(null);

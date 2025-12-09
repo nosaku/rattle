@@ -349,11 +349,14 @@ public class App extends Application {
 					}
 				} else {
 					TreeItem<ApiModelVo> newTreeItem = new TreeItem<>(apiModelVo);
-					String groupId = null;
-					if (apiModelVo.getGroupId() == null) {
-						groupId = CommonUtil.getGroupId(CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS, apiGroupVoMap);
+					// Add to the correct group based on groupId, fallback to Auth Configurations root if not set
+					TreeItem<ApiModelVo> groupTreeItem = apiModelVo.getGroupId() != null 
+						? treeItemMap.get(apiModelVo.getGroupId()) 
+						: null;
+					if (groupTreeItem == null) {
+						groupTreeItem = treeItemMap.get(CommonUtil.getGroupId(CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS, apiGroupVoMap));
 					}
-					treeItemMap.get(groupId).getChildren().add(newTreeItem);
+					groupTreeItem.getChildren().add(newTreeItem);
 				}
 				if (apiModelVo.getTabNbr() > lastAuthConfigIndex) {
 					lastAuthConfigIndex = apiModelVo.getTabNbr();
@@ -974,6 +977,13 @@ public class App extends Application {
 	public void addNewAuthConfig() {
 		tabManager.addNewAuthConfigTab(null, true, false);
 	}
+	
+	public void addNewAuthConfigToGroup(TreeItem<ApiModelVo> groupTreeItem) {
+		if (groupTreeItem == null || groupTreeItem.getValue() == null) {
+			return;
+		}
+		tabManager.addNewAuthConfigTab(null, true, false, groupTreeItem.getValue().getId());
+	}
 
 	public void clearAuthToken(String authConfigId) {
 		OAuthTokenStore.getInstance().clearToken(authConfigId);
@@ -985,6 +995,28 @@ public class App extends Application {
 	
 	public boolean isGroupTreeItem(TreeItem<ApiModelVo> treeItem) {
 		return treeItemMap.containsValue(treeItem);
+	}
+	
+	public boolean isAuthConfigurationGroup(TreeItem<ApiModelVo> treeItem) {
+		if (treeItem == null || treeItem.getValue() == null) {
+			return false;
+		}
+		
+		// Check if this is the root Auth Configurations group
+		if (CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS.equals(treeItem.getValue().getName())) {
+			return true;
+		}
+		
+		// Check if any ancestor is Auth Configurations
+		TreeItem<ApiModelVo> parent = treeItem.getParent();
+		while (parent != null && parent.getValue() != null) {
+			if (CommonConstants.GROUP_NAME_AUTH_CONFIGURATIONS.equals(parent.getValue().getName())) {
+				return true;
+			}
+			parent = parent.getParent();
+		}
+		
+		return false;
 	}
 	
 	public void addSubGroup(TreeItem<ApiModelVo> parentGroupTreeItem) {
