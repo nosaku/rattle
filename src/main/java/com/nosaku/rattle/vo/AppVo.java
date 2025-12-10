@@ -25,6 +25,7 @@ import java.util.List;
 
 public class AppVo {
 	private List<ApiModelVo> apiList;
+	private List<ApiGroupVo> apiGroups;
 	private ProxySettingsVo proxySettings;
 
 	public List<ApiModelVo> getApiList() {
@@ -33,6 +34,14 @@ public class AppVo {
 
 	public void setApiList(List<ApiModelVo> apiList) {
 		this.apiList = apiList;
+	}
+
+	public List<ApiGroupVo> getApiGroups() {
+		return apiGroups;
+	}
+
+	public void setApiGroups(List<ApiGroupVo> apiGroups) {
+		this.apiGroups = apiGroups;
 	}
 
 	public ProxySettingsVo getProxySettings() {
