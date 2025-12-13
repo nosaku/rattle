@@ -1,0 +1,15 @@
+<div class="sidebar">
+    <div class="sidebar-header">
+        <h3>Requests</h3>
+        <button (click)="onAddRequest()" class="btn-icon" title="New Request">+</button>
+    </div>
+
+    <div class="tree-view">
+        <div *ngFor="let node of treeNodes" class="tree-node-container">
+            <app-tree-node [node]="node" [activeId]="activeTabId" (nodeClick)="onNodeClick($event)"
+                (addRequest)="onAddRequest($event)" (addGroup)="onAddGroup($event)"
+                (deleteNode)="onDeleteNode($event, $event)">
+            </app-tree-node>
+        </div>
+    </div>
+</div>

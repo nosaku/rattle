@@ -1,0 +1,29 @@
+<div class="tree-node" [style.padding-left.px]="level * 15">
+    <div class="node-content" [class.active]="node.id === activeId" [class.group]="node.type === 'group'"
+        (click)="onNodeClick()">
+
+        <span class="expand-icon" *ngIf="node.type === 'group'">
+            {{ node.expanded ? '▼' : '▶' }}
+        </span>
+
+        <span class="method-badge" *ngIf="node.type === 'request'" [class]="getMethodClass()">
+            {{ (node.data as any)?.method }}
+        </span>
+
+        <span class="node-name">{{ node.name }}</span>
+
+        <div class="node-actions" *ngIf="node.type === 'group'">
+            <button (click)="onAddRequest($event)" class="btn-icon-small" title="Add Request">+</button>
+            <button (click)="onAddGroup($event)" class="btn-icon-small" title="Add Group">⊕</button>
+        </div>
+
+        <button (click)="onDelete($event)" class="btn-delete" title="Delete">×</button>
+    </div>
+
+    <div *ngIf="node.expanded && node.children && node.children.length > 0" class="node-children">
+        <app-tree-node *ngFor="let child of node.children" [node]="child" [activeId]="activeId" [level]="level + 1"
+            (nodeClick)="nodeClick.emit($event)" (addRequest)="addRequest.emit($event)"
+            (addGroup)="addGroup.emit($event)" (deleteNode)="deleteNode.emit($event)">
+        </app-tree-node>
+    </div>
+</div>

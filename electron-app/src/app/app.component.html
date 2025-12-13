@@ -1,0 +1,27 @@
+<div class="app-container">
+    <div class="main-content">
+        <app-sidebar (tabOpened)="onTabOpened($event)" [activeTabId]="activeTab?.id">
+        </app-sidebar>
+
+        <div class="content-area">
+            <app-tab-bar [tabs]="openTabs" [activeTab]="activeTab" (tabSelected)="onTabSelected($event)"
+                (tabClosed)="onTabClosed($event)">
+            </app-tab-bar>
+
+            <div class="tab-content">
+                <app-request-editor *ngIf="activeTab" [apiModel]="activeTab">
+                </app-request-editor>
+
+                <div *ngIf="!activeTab" class="empty-state">
+                    <h2>Welcome to Rattle</h2>
+                    <p>Create a new request or select one from the sidebar</p>
+                    <button (click)="createNewRequest()" class="btn-primary">New Request</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="app-footer">
+        <span>{{ copyright }}</span>
+    </footer>
+</div>

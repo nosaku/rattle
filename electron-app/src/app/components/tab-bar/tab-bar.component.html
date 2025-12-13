@@ -1,0 +1,13 @@
+<div class="tab-bar" *ngIf="tabs.length > 0">
+    <div *ngFor="let tab of tabs" class="tab" [class.active]="activeTab?.id === tab.id"
+        [class.modified]="tab.isModified" (click)="onTabClick(tab)">
+
+        <span class="tab-method" [class]="getMethodClass(tab.method)">
+            {{ tab.method }}
+        </span>
+
+        <span class="tab-name">{{ tab.name }}</span>
+
+        <button class="tab-close" (click)="onCloseTab(tab, $event)">×</button>
+    </div>
+</div>

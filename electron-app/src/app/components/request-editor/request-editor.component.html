@@ -1,0 +1,91 @@
+<div class="request-editor">
+    <div class="editor-section">
+        <div class="request-line">
+            <input type="text" [(ngModel)]="apiModel.name" (ngModelChange)="onFieldChange()" placeholder="Request Name"
+                class="input-name">
+
+            <select [(ngModel)]="apiModel.method" (ngModelChange)="onFieldChange()" class="select-method">
+                <option *ngFor="let method of httpMethods" [value]="method">{{ method }}</option>
+            </select>
+
+            <input type="text" [(ngModel)]="apiModel.url" (ngModelChange)="onFieldChange()"
+                placeholder="Enter request URL" class="input-url">
+
+            <button (click)="sendRequest()" [disabled]="loading" class="btn-send">
+                {{ loading ? 'Sending...' : 'Send' }}
+            </button>
+        </div>
+    </div>
+
+    <div class="editor-tabs">
+        <div class="tabs">
+            <button class="tab-button active">Params</button>
+            <button class="tab-button">Headers</button>
+            <button class="tab-button">Body</button>
+        </div>
+
+        <div class="tab-content">
+            <!-- Params Section -->
+            <div class="params-section">
+                <h4>Query Parameters</h4>
+                <div class="key-value-list">
+                    <div *ngFor="let param of paramsList; let i = index" class="key-value-row">
+                        <input type="text" [(ngModel)]="param.key" (ngModelChange)="onFieldChange()" placeholder="Key"
+                            class="input-key">
+                        <input type="text" [(ngModel)]="param.value" (ngModelChange)="onFieldChange()"
+                            placeholder="Value" class="input-value">
+                        <button (click)="removeParam(i)" class="btn-remove">−</button>
+                    </div>
+                    <button (click)="addParam()" class="btn-add">+ Add Parameter</button>
+                </div>
+            </div>
+
+            <!-- Headers Section -->
+            <div class="headers-section">
+                <h4>Headers</h4>
+                <div class="key-value-list">
+                    <div *ngFor="let header of headersList; let i = index" class="key-value-row">
+                        <input type="text" [(ngModel)]="header.key" (ngModelChange)="onFieldChange()"
+                            placeholder="Header Name" list="header-suggestions" class="input-key">
+                        <input type="text" [(ngModel)]="header.value" (ngModelChange)="onFieldChange()"
+                            placeholder="Header Value" class="input-value">
+                        <button (click)="removeHeader(i)" class="btn-remove">−</button>
+                    </div>
+                    <button (click)="addHeader()" class="btn-add">+ Add Header</button>
+                </div>
+
+                <datalist id="header-suggestions">
+                    <option *ngFor="let header of httpHeaders" [value]="header">
+                </datalist>
+            </div>
+
+            <!-- Body Section -->
+            <div class="body-section">
+                <div class="body-header">
+                    <h4>Request Body</h4>
+                    <button (click)="formatJson()" class="btn-format">Format JSON</button>
+                </div>
+                <textarea [(ngModel)]="apiModel.body" (ngModelChange)="onFieldChange()"
+                    placeholder="Enter request body (JSON, XML, etc.)" class="textarea-body" rows="10">
+        </textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- Response Section -->
+    <div class="response-section" *ngIf="response">
+        <div class="response-header">
+            <h4>Response</h4>
+            <div class="response-info">
+                <span class="status-badge" [class]="getStatusClass()">
+                    {{ response.status }} {{ response.statusText }}
+                </span>
+                <span class="duration">{{ response.duration }}ms</span>
+            </div>
+        </div>
+
+        <div class="response-body">
+            <pre>{{ responseBody }}</pre>
+        </div>
+    </div>
+</div>
