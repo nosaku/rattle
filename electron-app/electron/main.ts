@@ -35,13 +35,14 @@ function createWindow(): void {
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
-            preload: path.join(__dirname, 'preload.js')
+            preload: path.join(__dirname, 'preload.js'),
+            sandbox: false  // Disable sandbox for development
         },
         title: 'Rattle'
     });
 
     // In development mode, load from localhost
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env['NODE_ENV'] === 'development') {
         mainWindow.loadURL('http://localhost:4200');
         mainWindow.webContents.openDevTools();
     } else {

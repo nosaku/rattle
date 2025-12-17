@@ -42,4 +42,9 @@ export class TreeNodeComponent {
         const model = this.node.data as any;
         return model?.method?.toLowerCase() || '';
     }
+
+    getMethodBadgeText(): string {
+        const model = this.node.data as any;
+        return model?.method || '';
+    }
 }

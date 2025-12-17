@@ -116,9 +116,7 @@ export class SidebarComponent implements OnInit {
         }
     }
 
-    onDeleteNode(node: TreeNode, event: Event): void {
-        event.stopPropagation();
-
+    onDeleteNode(node: TreeNode): void {
         if (confirm(`Delete ${node.name}?`)) {
             if (node.type === 'group') {
                 this.storageService.deleteApiGroup(node.id);

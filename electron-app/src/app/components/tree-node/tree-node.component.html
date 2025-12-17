@@ -6,8 +6,8 @@
             {{ node.expanded ? '▼' : '▶' }}
         </span>
 
-        <span class="method-badge" *ngIf="node.type === 'request'" [class]="getMethodClass()">
-            {{ (node.data as any)?.method }}
+        <span class="method-badge" *ngIf="node.type === 'request'" [ngClass]="getMethodClass()">
+            {{ getMethodBadgeText() }}
         </span>
 
         <span class="node-name">{{ node.name }}</span>

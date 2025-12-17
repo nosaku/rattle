@@ -7,8 +7,7 @@
     <div class="tree-view">
         <div *ngFor="let node of treeNodes" class="tree-node-container">
             <app-tree-node [node]="node" [activeId]="activeTabId" (nodeClick)="onNodeClick($event)"
-                (addRequest)="onAddRequest($event)" (addGroup)="onAddGroup($event)"
-                (deleteNode)="onDeleteNode($event, $event)">
+                (addRequest)="onAddRequest($event)" (addGroup)="onAddGroup($event)" (deleteNode)="onDeleteNode($event)">
             </app-tree-node>
         </div>
     </div>

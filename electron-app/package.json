@@ -8,7 +8,7 @@
         "ng:build": "ng build",
         "ng:build:prod": "ng build --configuration production",
         "electron:build": "tsc -p tsconfig.electron.json",
-        "electron:serve": "wait-on http://localhost:4200 && npm run electron:build && electron .",
+        "electron:serve": "wait-on http://localhost:4200 && npm run electron:build && electron . --no-sandbox",
         "start": "npm-run-all -p ng:serve electron:serve",
         "build": "npm run ng:build:prod && npm run electron:build",
         "package": "npm run build && electron-builder build",
