@@ -332,6 +332,11 @@ public class App extends Application {
 	
 	private void initApp() {
 		int lastTabIndex = 0;
+		if (appVo == null) {
+			appVo = new AppVo();
+			appVo.setApiGroups(new ArrayList<>());
+			appVo.setApiList(new ArrayList<>());
+		}
 		if (appVo.getProxySettings() != null) {
 			this.proxySettings = appVo.getProxySettings();
 			ApiHelper.getInstance().setProxySettings(this.proxySettings);
