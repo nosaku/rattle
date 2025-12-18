@@ -37,6 +37,7 @@ import org.controlsfx.control.textfield.TextFields;
 import org.fxmisc.flowless.VirtualizedScrollPane;
 import org.fxmisc.richtext.CodeArea;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.iliareshetov.RichJsonFX;
 import com.nosaku.rattle.util.CommonConstants;
@@ -304,6 +305,7 @@ public class App extends Application {
 
 	private void readRattleFile() {
 		ObjectMapper mapper = new ObjectMapper();
+		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 		File dir = new File(System.getProperty("user.home"), ".rattle");
 		if (!dir.exists()) {
 			return;
@@ -887,6 +889,7 @@ public class App extends Application {
 
 	private void saveApiModelVoMapAsJson() {
 		ObjectMapper mapper = new ObjectMapper();
+		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 		File dir = new File(System.getProperty("user.home"), ".rattle");
 		if (!dir.exists()) {
 			dir.mkdirs();
