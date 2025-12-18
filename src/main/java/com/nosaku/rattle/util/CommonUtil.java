@@ -23,6 +23,8 @@ package com.nosaku.rattle.util;
 
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nosaku.rattle.vo.ApiGroupVo;
 
 public class CommonUtil {
@@ -47,5 +49,11 @@ public class CommonUtil {
 	
 	public static boolean isLinux() {
 		return "Linux".equalsIgnoreCase(System.getProperty("os.name"));
+	}
+	
+	public static ObjectMapper getObjectMapper() {
+		ObjectMapper mapper = new ObjectMapper();
+		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+		return mapper;
 	}
 }
