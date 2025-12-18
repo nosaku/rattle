@@ -303,7 +303,7 @@ public class App extends Application {
 	}
 
 	private void readRattleFile() {
-		ObjectMapper mapper = new ObjectMapper();
+		ObjectMapper mapper = CommonUtil.getObjectMapper();
 		File dir = new File(System.getProperty("user.home"), ".rattle");
 		if (!dir.exists()) {
 			return;
@@ -886,7 +886,7 @@ public class App extends Application {
 	}
 
 	private void saveApiModelVoMapAsJson() {
-		ObjectMapper mapper = new ObjectMapper();
+		ObjectMapper mapper = CommonUtil.getObjectMapper();
 		File dir = new File(System.getProperty("user.home"), ".rattle");
 		if (!dir.exists()) {
 			dir.mkdirs();
