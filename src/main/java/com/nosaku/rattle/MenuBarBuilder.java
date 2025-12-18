@@ -91,11 +91,12 @@ public class MenuBarBuilder {
 		Menu settingsMenu = new Menu("_Settings");
 		settingsMenu.setMnemonicParsing(true);
 		
-		MenuItem proxySettingsMenuItem = new MenuItem("_Proxy Settings");
-		proxySettingsMenuItem.setMnemonicParsing(true);
-		proxySettingsMenuItem.setOnAction(e -> callbacks.onProxySettings());
+		MenuItem settingsMenuItem = new MenuItem("_Preferences");
+		settingsMenuItem.setMnemonicParsing(true);
+		settingsMenuItem.setOnAction(e -> callbacks.onProxySettings());
+		settingsMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.COMMA, KeyCombination.CONTROL_DOWN));
 		
-		settingsMenu.getItems().add(proxySettingsMenuItem);
+		settingsMenu.getItems().add(settingsMenuItem);
 		return settingsMenu;
 	}
 	
