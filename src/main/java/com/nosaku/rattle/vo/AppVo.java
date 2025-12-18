@@ -27,6 +27,7 @@ public class AppVo {
 	private List<ApiModelVo> apiList;
 	private List<ApiGroupVo> apiGroups;
 	private ProxySettingsVo proxySettings;
+	private boolean darkMode;
 
 	public List<ApiModelVo> getApiList() {
 		return apiList;
@@ -50,5 +51,13 @@ public class AppVo {
 
 	public void setProxySettings(ProxySettingsVo proxySettings) {
 		this.proxySettings = proxySettings;
+	}
+
+	public boolean isDarkMode() {
+		return darkMode;
+	}
+
+	public void setDarkMode(boolean darkMode) {
+		this.darkMode = darkMode;
 	}
 }

@@ -101,6 +101,9 @@ public class App extends Application {
 	private ProxySettingsVo proxySettings;
 	private TabManager tabManager;
 	private Map<String, TreeItem<ApiModelVo>> treeItemMap = new LinkedHashMap<>();
+	private boolean isDarkMode = false;
+	private Scene scene;
+	private HBox footer;
 
 	public App() {
 	}
@@ -118,10 +121,14 @@ public class App extends Application {
 		appTitle.setFont(new Font("Arial", 14));
 
 		Label copyright = new Label(CommonConstants.COPYRIGHT_LABEL_TEXT);
-		HBox footer = new HBox(copyright);
+		CheckBox darkModeToggle = new CheckBox("Dark Mode");
+		darkModeToggle.setSelected(isDarkMode);
+		darkModeToggle.setOnAction(e -> toggleDarkMode());
+		
+		footer = new HBox(10, darkModeToggle, copyright);
 		footer.setAlignment(Pos.CENTER_RIGHT);
 		footer.setPadding(new Insets(5, 10, 5, 10));
-		footer.setStyle("-fx-background-color: #f0f0f0;");
+		updateFooterStyle();
 
 		ApiModelVo virtualRoot = new ApiModelVo();
 		virtualRoot.setName("");
@@ -251,10 +258,8 @@ public class App extends Application {
 		root.setCenter(splitPane);
 		root.setBottom(footer);
 
-		Scene scene = new Scene(root, 800, 600);
-		// TODO dark theme
-		scene.getStylesheets()
-				.add(Objects.requireNonNull(App.class.getResource("/json-light-theme.css")).toExternalForm());
+		scene = new Scene(root, 800, 600);
+		applyTheme();
 
 		scene.getAccelerators().put(new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN),
 				() -> tabManager.saveCurrentTab());
@@ -325,6 +330,8 @@ public class App extends Application {
 					apiGroupVoMap.put(apiGroupVo.getId(), apiGroupVo);
 				}
 			}
+			// Load dark mode preference
+			isDarkMode = this.appVo.isDarkMode();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -439,7 +446,7 @@ public class App extends Application {
 		requestBar.setPadding(new Insets(10));
 		requestBar.getChildren().addAll(methodComboBox, urlTextField, sendButton);
 		requestBar.setAlignment(Pos.CENTER_LEFT);
-		requestBar.setStyle("-fx-background-color: #f4f4f4; -fx-border-color: #ddd; -fx-border-width: 0 0 1 0;");
+		requestBar.getStyleClass().add("request-bar");
 
 		Tab finalCurrentTab = currentTab;
 		urlTextField.textProperty().addListener((obs, oldVal, newVal) -> {
@@ -898,6 +905,7 @@ public class App extends Application {
 			appVo.setApiList(apiModelVoList);
 			appVo.setApiGroups(new ArrayList<>(apiGroupVoMap.values()));
 			appVo.setProxySettings(this.proxySettings);
+			appVo.setDarkMode(isDarkMode);
 			for (Map.Entry<String, ApiModelVo> entry : apiModelVoMap.entrySet()) {
 				ApiModelVo apiModelVo = entry.getValue().clone();
 				apiModelVo.setResponse(null);
@@ -1402,5 +1410,30 @@ public class App extends Application {
 		oAuth2Box.getChildren().addAll(instructionsLabel, infoLabel);
 
 		return oAuth2Box;
+	}
+
+	private void toggleDarkMode() {
+		isDarkMode = !isDarkMode;
+		applyTheme();
+		updateFooterStyle();
+		saveApiModelVoMapAsJson(); // Save preference
+	}
+
+	private void applyTheme() {
+		scene.getStylesheets().clear();
+		if (isDarkMode) {
+			scene.getStylesheets().add(
+					Objects.requireNonNull(App.class.getResource("/dark-theme.css")).toExternalForm());
+		}
+		scene.getStylesheets().add(
+				Objects.requireNonNull(App.class.getResource("/json-light-theme.css")).toExternalForm());
+	}
+
+	private void updateFooterStyle() {
+		if (isDarkMode) {
+			footer.setStyle("-fx-background-color: #2b2b2b;");
+		} else {
+			footer.setStyle("-fx-background-color: #f0f0f0;");
+		}
 	}
 }

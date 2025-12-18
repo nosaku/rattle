@@ -91,7 +91,7 @@ public class AboutDialog {
 		rightBox.setAlignment(Pos.CENTER_LEFT);
 
 		Label appNameLabel = new Label("Rattle API Client");
-		appNameLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+		appNameLabel.getStyleClass().add("about-app-name");
 
 		Label descriptionLabel = new Label(
 				"Rattle is an API client for testing and managing RESTful APIs.\n\n"
@@ -101,11 +101,11 @@ public class AboutDialog {
 				+ "- Request history\n"
 				+ "- Easy parameter and header editing\n\n"
 				+ "Enjoy productivity and simplicity for your API workflow!");
-		descriptionLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #333;");
+		descriptionLabel.getStyleClass().add("about-description");
 		descriptionLabel.setWrapText(true);
 
 		Label copyrightLabel = new Label(CommonConstants.COPYRIGHT_LABEL_TEXT);
-		copyrightLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #555;");
+		copyrightLabel.getStyleClass().add("about-copyright");
 
 		rightBox.getChildren().addAll(appNameLabel, descriptionLabel, copyrightLabel);
 		content.getChildren().addAll(imageView, rightBox);
