@@ -48,7 +48,6 @@ public class MenuBarBuilder {
 	public MenuBar build() {
 		MenuBar menuBar = new MenuBar();
 		menuBar.getMenus().add(createFileMenu());
-		menuBar.getMenus().add(createSettingsMenu());
 		menuBar.getMenus().add(createHelpMenu());
 		return menuBar;
 	}
@@ -77,27 +76,19 @@ public class MenuBarBuilder {
 		saveAllMenuItem.setOnAction(e -> callbacks.onSaveAll());
 		saveAllMenuItem.setAccelerator(
 				new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
-		
+
+		MenuItem settingsMenuItem = new MenuItem("S_ettings");
+		settingsMenuItem.setMnemonicParsing(true);
+		settingsMenuItem.setOnAction(e -> callbacks.onProxySettings());
+		settingsMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.COMMA, KeyCombination.CONTROL_DOWN));
+
 		MenuItem exitMenuItem = new MenuItem("E_xit");
 		exitMenuItem.setMnemonicParsing(true);
 		exitMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.X, KeyCombination.ALT_DOWN));
 		exitMenuItem.setOnAction(e -> Platform.exit());
 		
-		fileMenu.getItems().addAll(newRequestMenuItem, newGroupMenuItem, saveMenuItem, saveAllMenuItem, exitMenuItem);
+		fileMenu.getItems().addAll(newRequestMenuItem, newGroupMenuItem, saveMenuItem, saveAllMenuItem, settingsMenuItem, exitMenuItem);
 		return fileMenu;
-	}
-	
-	private Menu createSettingsMenu() {
-		Menu settingsMenu = new Menu("_Settings");
-		settingsMenu.setMnemonicParsing(true);
-		
-		MenuItem settingsMenuItem = new MenuItem("_Preferences");
-		settingsMenuItem.setMnemonicParsing(true);
-		settingsMenuItem.setOnAction(e -> callbacks.onProxySettings());
-		settingsMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.COMMA, KeyCombination.CONTROL_DOWN));
-		
-		settingsMenu.getItems().add(settingsMenuItem);
-		return settingsMenu;
 	}
 	
 	private Menu createHelpMenu() {
