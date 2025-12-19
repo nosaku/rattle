@@ -1,0 +1,257 @@
+/* Dark Mode Theme for Rattle */
+
+/* Root and base styling */
+.root {
+    -fx-base: #2b2b2b;
+    -fx-background: #1e1e1e;
+    -fx-control-inner-background: #2b2b2b;
+    -fx-accent: #0d7377;
+    -fx-focus-color: #0d7377;
+    -fx-faint-focus-color: #0d737722;
+}
+
+/* Text and labels */
+.label,
+.text {
+    -fx-text-fill: #e0e0e0;
+}
+
+/* Text inputs */
+.text-field,
+.text-area {
+    -fx-background-color: #1e1e1e, #2b2b2b;
+    -fx-text-fill: #e0e0e0;
+    -fx-prompt-text-fill: #888;
+}
+
+.text-field:focused,
+.text-area:focused {
+    -fx-background-color: #1e1e1e, #333;
+    -fx-border-color: #0d7377;
+}
+
+/* Buttons */
+.button {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: #e0e0e0;
+    -fx-border-color: #555;
+}
+
+.button:hover {
+    -fx-background-color: #4a4a4a;
+}
+
+.button:pressed {
+    -fx-background-color: #2a2a2a;
+}
+
+/* ComboBox */
+.combo-box {
+    -fx-background-color: #2b2b2b;
+}
+
+.combo-box .list-cell {
+    -fx-background-color: #2b2b2b;
+    -fx-text-fill: #e0e0e0;
+}
+
+.combo-box-popup .list-view {
+    -fx-background-color: #2b2b2b;
+    -fx-border-color: #555;
+}
+
+/* TabPane */
+.tab-pane {
+    -fx-background-color: #1e1e1e;
+    -fx-border-color: #333;
+}
+
+.tab-pane .tab-header-area {
+    -fx-background-color: #2b2b2b;
+}
+
+.tab-pane .tab {
+    -fx-background-color: #2b2b2b;
+    -fx-border-color: #333;
+}
+
+.tab-pane .tab:selected {
+    -fx-background-color: #1e1e1e;
+    -fx-border-color: #0d7377;
+    -fx-border-width: 0 0 2 0;
+}
+
+.tab-pane .tab .tab-label {
+    -fx-text-fill: #b0b0b0;
+    -fx-max-width: 150px;
+    -fx-text-overrun: ellipsis;
+}
+
+.tab-pane .tab:selected .tab-label {
+    -fx-text-fill: #e0e0e0;
+}
+
+.tab-pane .tab-header-area .tab {
+    -fx-min-width: 160px;
+    -fx-pref-width: 160px;
+    -fx-max-width: 160px;
+}
+
+/* TreeView */
+.tree-view {
+    -fx-background-color: #1e1e1e;
+    -fx-border-color: #333;
+}
+
+.tree-cell {
+    -fx-background-color: #1e1e1e;
+    -fx-text-fill: #e0e0e0;
+}
+
+.tree-cell:selected {
+    -fx-background-color: #0d7377;
+    -fx-text-fill: white;
+}
+
+.tree-cell:hover {
+    -fx-background-color: #2b2b2b;
+}
+
+/* ScrollPane and ScrollBar */
+.scroll-pane {
+    -fx-background-color: #1e1e1e;
+}
+
+.scroll-bar {
+    -fx-background-color: #2b2b2b;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: #555;
+    -fx-background-radius: 5;
+}
+
+.scroll-bar .thumb:hover {
+    -fx-background-color: #666;
+}
+
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-background-color: #2b2b2b;
+}
+
+/* SplitPane */
+.split-pane {
+    -fx-background-color: #1e1e1e;
+}
+
+.split-pane-divider {
+    -fx-background-color: #333;
+}
+
+/* MenuBar */
+.menu-bar {
+    -fx-background-color: #2b2b2b;
+}
+
+.menu-bar .label {
+    -fx-text-fill: #e0e0e0;
+}
+
+.menu-bar .menu:hover,
+.menu-bar .menu:showing {
+    -fx-background-color: #3c3c3c;
+}
+
+.context-menu {
+    -fx-background-color: #2b2b2b;
+    -fx-border-color: #555;
+}
+
+.menu-item {
+    -fx-background-color: #2b2b2b;
+}
+
+.menu-item .label {
+    -fx-text-fill: #e0e0e0;
+}
+
+.menu-item:focused {
+    -fx-background-color: #0d7377;
+}
+
+/* CheckBox */
+.check-box {
+    -fx-text-fill: #e0e0e0;
+}
+
+.check-box .box {
+    -fx-background-color: #2b2b2b;
+    -fx-border-color: #555;
+}
+
+.check-box:selected .mark {
+    -fx-background-color: #0d7377;
+}
+
+/* ProgressIndicator */
+.progress-indicator .percentage {
+    -fx-fill: #e0e0e0;
+}
+
+/* TableView */
+.table-view {
+    -fx-background-color: #1e1e1e;
+}
+
+.table-view .column-header {
+    -fx-background-color: #2b2b2b;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: #e0e0e0;
+}
+
+.table-view .table-cell {
+    -fx-text-fill: #e0e0e0;
+    -fx-border-color: #333;
+}
+
+.table-row-cell:selected {
+    -fx-background-color: #0d7377;
+}
+
+/* Tooltip */
+.tooltip {
+    -fx-background-color: #2b2b2b;
+    -fx-text-fill: #e0e0e0;
+    -fx-border-color: #555;
+}
+
+/* Request Bar */
+.request-bar {
+    -fx-background-color: #2b2b2b;
+    -fx-border-color: #444;
+    -fx-border-width: 0 0 1 0;
+}
+
+/* CodeArea (RichTextFX) */
+.code-area {
+    -fx-background-color: #1e1e1e;
+}
+
+
+/* About Dialog */
+.about-app-name {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.about-description {
+    -fx-font-size: 13px;
+}
+
+.about-copyright {
+    -fx-font-size: 12px;
+    -fx-text-fill: #888;
+}

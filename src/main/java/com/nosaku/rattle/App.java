@@ -47,6 +47,7 @@ import com.nosaku.rattle.vo.ApiGroupVo;
 import com.nosaku.rattle.vo.ApiModelVo;
 import com.nosaku.rattle.vo.AppVo;
 import com.nosaku.rattle.vo.ProxySettingsVo;
+import com.nosaku.rattle.vo.SettingsVo;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -101,6 +102,9 @@ public class App extends Application {
 	private ProxySettingsVo proxySettings;
 	private TabManager tabManager;
 	private Map<String, TreeItem<ApiModelVo>> treeItemMap = new LinkedHashMap<>();
+	private String currentTheme = "light"; // "light", "dark", or "system"
+	private Scene scene;
+	private HBox footer;
 
 	public App() {
 	}
@@ -118,10 +122,10 @@ public class App extends Application {
 		appTitle.setFont(new Font("Arial", 14));
 
 		Label copyright = new Label(CommonConstants.COPYRIGHT_LABEL_TEXT);
-		HBox footer = new HBox(copyright);
+		footer = new HBox(10, copyright);
 		footer.setAlignment(Pos.CENTER_RIGHT);
 		footer.setPadding(new Insets(5, 10, 5, 10));
-		footer.setStyle("-fx-background-color: #f0f0f0;");
+		updateFooterStyle();
 
 		ApiModelVo virtualRoot = new ApiModelVo();
 		virtualRoot.setName("");
@@ -251,10 +255,8 @@ public class App extends Application {
 		root.setCenter(splitPane);
 		root.setBottom(footer);
 
-		Scene scene = new Scene(root, 800, 600);
-		// TODO dark theme
-		scene.getStylesheets()
-				.add(Objects.requireNonNull(App.class.getResource("/json-light-theme.css")).toExternalForm());
+		scene = new Scene(root, 800, 600);
+		applyTheme();
 
 		scene.getAccelerators().put(new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN),
 				() -> tabManager.saveCurrentTab());
@@ -324,6 +326,19 @@ public class App extends Application {
 				for (ApiGroupVo apiGroupVo : appVo.getApiGroups()) {
 					apiGroupVoMap.put(apiGroupVo.getId(), apiGroupVo);
 				}
+			}
+			// Load theme preference (with backward compatibility)
+			if (this.appVo.getSettings() != null && this.appVo.getSettings().getTheme() != null) {
+				// New structure: use settings.theme
+				currentTheme = this.appVo.getSettings().getTheme();
+			} else if (this.appVo.getTheme() != null) {
+				// Legacy: direct theme field
+				currentTheme = this.appVo.getTheme();
+			} else if (this.appVo.isDarkMode()) {
+				// Oldest legacy: darkMode boolean
+				currentTheme = "dark";
+			} else {
+				currentTheme = "light";
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -439,7 +454,7 @@ public class App extends Application {
 		requestBar.setPadding(new Insets(10));
 		requestBar.getChildren().addAll(methodComboBox, urlTextField, sendButton);
 		requestBar.setAlignment(Pos.CENTER_LEFT);
-		requestBar.setStyle("-fx-background-color: #f4f4f4; -fx-border-color: #ddd; -fx-border-width: 0 0 1 0;");
+		requestBar.getStyleClass().add("request-bar");
 
 		Tab finalCurrentTab = currentTab;
 		urlTextField.textProperty().addListener((obs, oldVal, newVal) -> {
@@ -897,7 +912,16 @@ public class App extends Application {
 			List<ApiModelVo> apiModelVoList = new ArrayList<>();
 			appVo.setApiList(apiModelVoList);
 			appVo.setApiGroups(new ArrayList<>(apiGroupVoMap.values()));
+			
+			// Create SettingsVo with current settings
+			SettingsVo settings = new SettingsVo();
+			settings.setTheme(currentTheme);
+			settings.setProxySettings(this.proxySettings);
+			appVo.setSettings(settings);
+			
+			// Also set legacy fields for backward compatibility
 			appVo.setProxySettings(this.proxySettings);
+			appVo.setTheme(currentTheme);
 			for (Map.Entry<String, ApiModelVo> entry : apiModelVoMap.entrySet()) {
 				ApiModelVo apiModelVo = entry.getValue().clone();
 				apiModelVo.setResponse(null);
@@ -966,17 +990,27 @@ public class App extends Application {
 	}
 
 	private void openProxySettingsDialog() {
-		ProxySettingsDialog dialog = new ProxySettingsDialog(this.proxySettings);
+		SettingsDialog dialog = new SettingsDialog(this.proxySettings, this.currentTheme);
 		dialog.initOwner(centerTabs.getScene() != null ? centerTabs.getScene().getWindow() : null);
-		dialog.showAndWait().ifPresent(newSettings -> {
-			this.proxySettings = newSettings;
-			ApiHelper.getInstance().setProxySettings(newSettings);
+		dialog.showAndWait().ifPresent(settingsVo -> {
+			// Update proxy settings
+			this.proxySettings = settingsVo.getProxySettings();
+			ApiHelper.getInstance().setProxySettings(settingsVo.getProxySettings());
+			
+			// Update theme
+			String newTheme = settingsVo.getTheme();
+			if (!newTheme.equals(currentTheme)) {
+				currentTheme = newTheme;
+				applyTheme();
+				updateFooterStyle();
+			}
+			
 			saveApiModelVoMapAsJson();
 
 			Alert alert = new Alert(Alert.AlertType.INFORMATION);
-			alert.setTitle("Proxy Settings");
-			alert.setHeaderText("Proxy settings updated successfully");
-			alert.setContentText("Proxy settings have been saved and will be used for future API requests.");
+			alert.setTitle("Settings");
+			alert.setHeaderText("Settings updated successfully");
+			alert.setContentText("Your settings have been saved.");
 			alert.initOwner(centerTabs.getScene().getWindow());
 			alert.showAndWait();
 		});
@@ -1402,5 +1436,39 @@ public class App extends Application {
 		oAuth2Box.getChildren().addAll(instructionsLabel, infoLabel);
 
 		return oAuth2Box;
+	}
+
+	private void applyTheme() {
+		scene.getStylesheets().clear();
+		
+		String effectiveTheme = currentTheme;
+		if ("system".equals(currentTheme)) {
+			// Detect system theme (simplified - always use light for now)
+			// In a real implementation, you'd detect the OS theme
+			effectiveTheme = "light";
+		}
+		
+		if ("dark".equals(effectiveTheme)) {
+			scene.getStylesheets().add(
+					Objects.requireNonNull(App.class.getResource("/json-dark-theme.css")).toExternalForm());
+			scene.getStylesheets().add(
+					Objects.requireNonNull(App.class.getResource("/dark-theme.css")).toExternalForm());
+		} else {
+			scene.getStylesheets().add(
+					Objects.requireNonNull(App.class.getResource("/json-light-theme.css")).toExternalForm());
+		}
+	}
+
+	private void updateFooterStyle() {
+		String effectiveTheme = currentTheme;
+		if ("system".equals(currentTheme)) {
+			effectiveTheme = "light"; // Default to light for system theme
+		}
+		
+		if ("dark".equals(effectiveTheme)) {
+			footer.setStyle("-fx-background-color: #2b2b2b;");
+		} else {
+			footer.setStyle("-fx-background-color: #f0f0f0;");
+		}
 	}
 }

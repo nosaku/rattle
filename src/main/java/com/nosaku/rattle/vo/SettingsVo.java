@@ -21,63 +21,31 @@
  */
 package com.nosaku.rattle.vo;
 
-import java.util.List;
-
-public class AppVo {
-	private List<ApiModelVo> apiList;
-	private List<ApiGroupVo> apiGroups;
-	private SettingsVo settings;
-	
-	// Legacy fields for backward compatibility
-	private ProxySettingsVo proxySettings;
-	private boolean darkMode;
+public class SettingsVo {
 	private String theme;
-
-	public List<ApiModelVo> getApiList() {
-		return apiList;
+	private ProxySettingsVo proxySettings;
+	
+	public SettingsVo() {
 	}
-
-	public void setApiList(List<ApiModelVo> apiList) {
-		this.apiList = apiList;
-	}
-
-	public List<ApiGroupVo> getApiGroups() {
-		return apiGroups;
-	}
-
-	public void setApiGroups(List<ApiGroupVo> apiGroups) {
-		this.apiGroups = apiGroups;
-	}
-
-	public ProxySettingsVo getProxySettings() {
-		return proxySettings;
-	}
-
-	public void setProxySettings(ProxySettingsVo proxySettings) {
+	
+	public SettingsVo(String theme, ProxySettingsVo proxySettings) {
+		this.theme = theme;
 		this.proxySettings = proxySettings;
 	}
-
-	public boolean isDarkMode() {
-		return darkMode;
-	}
-
-	public void setDarkMode(boolean darkMode) {
-		this.darkMode = darkMode;
-	}
-
+	
 	public String getTheme() {
 		return theme;
 	}
-
+	
 	public void setTheme(String theme) {
 		this.theme = theme;
 	}
-
-	public SettingsVo getSettings() {
-		return settings;
+	
+	public ProxySettingsVo getProxySettings() {
+		return proxySettings;
 	}
-
-	public void setSettings(SettingsVo settings) {
-		this.settings = settings;
+	
+	public void setProxySettings(ProxySettingsVo proxySettings) {
+		this.proxySettings = proxySettings;
 	}
 }
