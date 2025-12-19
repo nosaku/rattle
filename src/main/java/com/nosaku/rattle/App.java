@@ -1450,10 +1450,13 @@ public class App extends Application {
 		
 		if ("dark".equals(effectiveTheme)) {
 			scene.getStylesheets().add(
+					Objects.requireNonNull(App.class.getResource("/json-dark-theme.css")).toExternalForm());
+			scene.getStylesheets().add(
 					Objects.requireNonNull(App.class.getResource("/dark-theme.css")).toExternalForm());
+		} else {
+			scene.getStylesheets().add(
+					Objects.requireNonNull(App.class.getResource("/json-light-theme.css")).toExternalForm());
 		}
-		scene.getStylesheets().add(
-				Objects.requireNonNull(App.class.getResource("/json-light-theme.css")).toExternalForm());
 	}
 
 	private void updateFooterStyle() {

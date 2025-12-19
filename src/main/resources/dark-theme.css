@@ -221,32 +221,6 @@
     -fx-background-color: #0d7377;
 }
 
-/* JSON Syntax Highlighting for CodeArea */
-.json-key {
-    -fx-fill: #9cdcfe;
-}
-
-.json-string {
-    -fx-fill: #ce9178;
-}
-
-.json-number {
-    -fx-fill: #b5cea8;
-}
-
-.json-boolean {
-    -fx-fill: #569cd6;
-}
-
-.json-null {
-    -fx-fill: #569cd6;
-}
-
-.json-brace,
-.json-bracket {
-    -fx-fill: #d4d4d4;
-}
-
 /* Tooltip */
 .tooltip {
     -fx-background-color: #2b2b2b;
@@ -260,6 +234,12 @@
     -fx-border-color: #444;
     -fx-border-width: 0 0 1 0;
 }
+
+/* CodeArea (RichTextFX) */
+.code-area {
+    -fx-background-color: #1e1e1e;
+}
+
 
 /* About Dialog */
 .about-app-name {
